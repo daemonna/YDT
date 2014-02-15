@@ -116,8 +116,6 @@ adt_history_write() {
 # find out type of linux distro of HOST #
 #########################################
 get_distro() {
-# PYTHON check
-  echo -e "\ninitializing adt-installer NG\n"
   adt_log_write "initializing adt-installer" "INFO"
   echo -e "checking for right Python version.."
   if [ ${HOST_PYTHON_VERSION} -eq 0 ]; then
@@ -218,17 +216,21 @@ install_adt_extras() {
 #  install qemu (default NO)  #
 ###############################
 install_qemu() {
-  case "${HOST_DISTRO}" in
-  redhat) yum install autoconf automake libtool glib2-devel
-    ;;
-  suse) zypper install autoconf automake libtool glib2-devel
-    ;;
-  debian) apt-get install autoconf automake libtool libglib2.0-dev
-    ;;
-  *) echo "DISTRO error"
-    exit 1
-    ;;
-  esac
+  if [[ "$HOST_INSTALL_QEMU" == "Y" ]];then
+    case "${HOST_DISTRO}" in
+    redhat) yum install autoconf automake libtool glib2-devel
+      ;;
+    suse) zypper install autoconf automake libtool glib2-devel
+      ;;
+    debian) apt-get install autoconf automake libtool libglib2.0-dev
+      ;;
+    *) echo "DISTRO error"
+      exit 1
+      ;;
+    esac
+  else
+    echo -e "skipping installation of Qemu"
+  fi
 
 }
 
@@ -281,7 +283,7 @@ prepare_essentials() {
       exit
     fi
   else
-    echo "running as $USER.. OK"
+    echo "running as as ${GREEN}${USER}${NONE}.. OK"
   fi
 
 
@@ -290,7 +292,7 @@ prepare_essentials() {
 ###############################
   echo -e "checking for .ydt folder..."
   if [[ -d $HOME/.ydt ]];then
-    echo -e "you're running ADT installer for first time as ${GREEN}${USER}${NONE}"
+    echo -e "you're running YDT installer for first time as ${GREEN}${USER}${NONE}"
   else
     echo -e "no .ydt folder... creating in $HOME/.ydt ."
     mkdir $HOME/.ydt
@@ -343,8 +345,8 @@ prepare_essentials() {
 # qemux86 qemux86-64 genericx86 genericx86-64 beagleboard mpc8315e-rdb routerstationpro"
 ########################################################################################
 list_targets() {
-  echo "available targets:"
-  echo "qemumips qemuppc qemux86 qemux86-64 genericx86 genericx86-64 beagleboard mpc8315e-rdb routerstationpro"
+  echo -e "available targets:"
+  echo -e "${GREEN}qemumips qemuppc qemux86 qemux86-64 genericx86 genericx86-64 beagleboard mpc8315e-rdb routerstationpro${NONE}"
 }
 
 
@@ -353,17 +355,18 @@ set_targets() {
   if [[ "${INTERACTIVE}" == "Y" ]];then
     echo -e "your HOST is ${GREEN}${HOST_ARCH}${NONE}, what targets you want to install?"
     list_targets
+    echo -e "${NONE}[target names]"
     read TRGT
     # TODO validate target
   else
-    echo "setting target to $TARGETS"    
+    echo "setting targets to $TARGETS[@]"    
   fi
 }
 
 # must get "minimal minimal-dev sato sato-dev sato-sdk lsb lsb-dev lsb-sdk"​
 list_rootfs() {
-  echo "available rootfs:"
-  echo "minimal minimal-dev sato sato-dev sato-sdk lsb lsb-dev lsb-sdk"
+  echo -e "available rootfs:"
+  echo -e "${GREEN}minimal minimal-dev sato sato-dev sato-sdk lsb lsb-dev lsb-sdk${NONE}"
 }
 
 
@@ -378,7 +381,7 @@ download_toolchain() {
 
 run_interactive() {
   echo -e "welcome to interactive mode"
-  print_host_info
+  print_parameters
 }
 
 
@@ -436,32 +439,11 @@ print_parameters() {
   echo -e "------------------------------------------------------"
 }
 
-print_host_info() {
-  get_distro
-  echo -e "- ${YELLOW}HOST PARAMETERS ${NONE}------------------------------------"
 
-  echo -e "  architecture:     ${GREEN}${HOST_ARCH}${NONE}"
-  echo -e "  operating system: ${GREEN}${HOST_OS}${NONE}"
-  echo -e "  kernel version:   ${GREEN}${HOST_KERNEL_VERSION}${NONE}"
-  echo -e "  distribution:     ${GREEN}${HOST_DISTRO}${NONE}"
-  echo -e "  CPU threads:      ${GREEN}${HOST_CPU_THREADS}${NONE}"
-  echo -e "------------------------------------------------------"
-
-  echo -e "- ${YELLOW}TARGET PARAMETERS ${NONE}----------------------------------"
-  echo -e "  targets:          ${GREEN}${TARGETS}${NONE}"
-  echo -e "------------------------------------------------------"
-  
-  echo -e "- ${YELLOW}INSTALL PARAMETERS ${NONE}----------------------------------"
-  echo -e "  install folder:   ${GREEN}${INSTALL_FOLDER}${NONE}"
-  echo -e "  download folder:  ${GREEN}${DOWNLOAD_FOLDER}${NONE}"
-  echo -e "  ADT repo:         ${GREEN}${YOCTO_ADT_REPO}${NONE}"
-  echo -e "  log file:         ${GREEN}${LOG_FILE}${NONE}"
-  echo -e "------------------------------------------------------"
-}
 
 print_usage() {
   echo "running under BASH ${BASH_VERSION}"
-  print_host_info
+  print_parameters
   echo -e "\nUsage:\n"
   echo -e "--interactive          [enter interactive mode where installer will ask for every parameter]"
   echo -e "--list-params          [list all parameters]"
@@ -488,7 +470,10 @@ print_usage() {
 }
 
 
-
+print_banner() {
+  echo -e "\/ _  __|_ _"
+  echo -e "/ (_)(_ | (_) development toolkit\n"
+}
 
 
 
@@ -496,6 +481,8 @@ print_usage() {
 #                                                                                                  #
 # MAIN FUNCTION                                                                                    #
 ####################################################################################################
+
+print_banner
 
 # if no parameters, run interactive
 if [[ -z "$1" ]]; then
@@ -507,7 +494,7 @@ if [[ -z "$1" ]]; then
     print_usage
     exit
   else 
-    print_host_info
+    print_parameters
     #TODO installation
   fi
 fi
@@ -528,9 +515,10 @@ case "$i" in
     prepare_essentials
     exit
     ;;
-  --list-targets) echo "available targets are qemumips qemuppc qemux86 qemux86-64 genericx86 genericx86-64 beagleboard mpc8315e-rdb routerstationpro"    
+  --list-targets) list_targets  
     ;;
-  --set-targets) TARGETS="${i#*=}" # define target(s) separated by space, to see values use list_targets switch. Example "arm x86"
+  --set-targets=*) TARGETS=("${i#*=}") # define target(s) separated by space, to see values use list_targets switch. Example "arm x86"
+    print_parameters
     ;;
   --list-rootfs) list_rootfs  
     ;;
@@ -542,9 +530,11 @@ case "$i" in
     ;;
   --show-history) show_history
     ;;
-  --install-qemu) echo "something" #  install qemu (default NO)
+  --install-qemu=*) HOST_INSTALL_QEMU="${i#*=}"
+    install_qemu
     ;;
-  --install-nfs) echo "something" # install nfs  (default NO)
+  --install-nfs) HOST_INSTALL_NFS="${i#*=}"
+    install_nfs
     ;;
   --save-to-config) echo "something" # save values to config
     ;;
@@ -566,6 +556,7 @@ case "$i" in
     ;;
 esac
 done
+
 
 ############################
 # continue with params set #
