@@ -306,14 +306,17 @@ prepare_essentials() {
 ########################
   if [[ -d $LOG_FOLDER ]];then
     echo "$LOG_FOLDER exists.. OK"
+    adt_log_write "                               " "new entry"
   else
     echo "$LOG_FOLDER not found.. creating one"
     mkdir $LOG_FOLDER
     touch ${LOG_FOLDER}/ydt_ng.log
     echo "#created on ${NOW}" >> ${LOG_FOLDER}/ydt_ng.log
+    adt_log_write "                               " "new entry"
     adt_log_write "FIRST INITIALIZATION" "INFO"
     adt_log_write "log file missing.. recreated in ${LOG_FOLDER}" "WARNING"
   fi
+
 
 ####################### 
 # check CONFIG files  #
@@ -391,12 +394,35 @@ download_toolchain() {
 
 
 run_interactive() {
-  echo -e "welcome to interactive mode"
+  echo -e "welcome to interactive mode\nthese are current parameters"
   print_parameters
+  echo -e "${GREEN}specify install folder${NONE}"
 }
 
 
+run_installer() {
+  if [[ "${INTERACTIVE}" == "Y" ]];then
+    adt_log_write "running interactive mode.. collecting user input" "INFO"
+    adt_history_write "running interactive mode.. collecting user input"
+    run_interactive
+  else
+    adt_log_write "running non-interactive mode" "INFO"
+    adt_history_write "running non-interactive mode"
+  fi
 
+  echo -e "${GREEN}running installation..${NONE}"
+  adt_log_write "running installation with following parameters:" "INFO"
+  adt_log_write "params" "INFO"
+  adt_history_write "running installation with following parameters:"
+  adt_history_write "params"
+
+
+
+
+# END OF INSTALLATION
+  adt_log_write "end of install" "INFO"
+  adt_history_write "end of install"
+}
 
 ####################################################################################################
 #                                                                                                  #
@@ -491,6 +517,7 @@ print_banner() {
 
 
 
+
 ####################################################################################################
 #                                                                                                  #
 # MAIN FUNCTION                                                                                    #
@@ -509,7 +536,7 @@ if [[ -z "$1" ]]; then
     exit
   else 
     print_parameters
-    #TODO installation
+    run_installer
   fi
 fi
 
@@ -556,7 +583,6 @@ case "$i" in
     ;;
   --interactive)
     INTERACTIVE="Y"
-    LOG_FOLDER="${INSTALL_FOLDER}/log"
     ;;
   --set-download-folder) DOWNLOAD_FOLDER="${i#*=}"
     echo -e "download folder set to ${DOWNLOAD_FOLDER}"
@@ -571,6 +597,7 @@ case "$i" in
       else
         echo -e "${RED}log file not found.. re-run installer to see default log${NONE}"
       fi
+      exit
     ;;
   *) echo "invalid option!!!" 
     print_usage
@@ -582,6 +609,8 @@ LOG_FOLDER="${INSTALL_FOLDER}/log"
 prepare_essentials
 adt_log_write "INITIALIZATION finished" "INFO"
 adt_history_write "INITIALIZATION finished"
+
+run_installer
 
 ############################
 # continue with params set #
