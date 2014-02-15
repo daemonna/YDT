@@ -79,12 +79,13 @@ PACKAGE_MANAGER="ipk" #default package manager
 #######################
 # Global adt values   #
 #######################
-INSTALL_FOLDER="$(pwd)/.ydt" #current location as default
-DOWNLOAD_FOLDER="$(pwd)/.ydt/down" #The central download directory used by the build process to store downloads
+INSTALL_FOLDER="$HOME/.ydt" #current location as default
+DOWNLOAD_FOLDER="$HOME/.ydt/down" #The central download directory used by the build process to store downloads
 YOCTO_ADT_REPO="http://downloads.yoctoproject.org/releases/yocto/yocto-1.5.1/"
 LOG_FOLDER="$HOME/.ydt/log"
 LOG="${LOG_FOLDER}/ydt_ng.log"
 HISTORY="$HOME/.ydt/history"
+EXTERNAL_TARGETS_FOLDER="$HOME/.ydt/external_targets"
 INTERACTIVE="N" #by default not interactive
 
 ############################
@@ -174,7 +175,6 @@ install_graphical_extras() {
     exit 1
     ;;
   esac
-
 }
 
 
@@ -366,20 +366,6 @@ list_rootfs() {
   echo "minimal minimal-dev sato sato-dev sato-sdk lsb lsb-dev lsb-sdk"
 }
 
-# set which rootfs you want
-set_rootfs() {
-  echo "setting rootfs to $1"
-  if [[ -z $1 ]];then
-    ROOTFS=$1
-  fi
-}
-
-# define packaging system, possible values: rpm, ipk, tar, deb
-set_package_system() {
-
-  echo "something"
-}
-
 
 ###############################
 # download specific toolchain #
@@ -394,6 +380,8 @@ run_interactive() {
   echo -e "welcome to interactive mode"
   print_host_info
 }
+
+
 
 
 ####################################################################################################
@@ -414,6 +402,40 @@ list_configs() {
   ls $HOME/.ydt/configs/
 }
 
+print_parameters() {
+  get_distro
+  echo -e "@${NOW}"
+  echo -e "- ${YELLOW}HOST PARAMETERS ${NONE}------------------------------------"
+
+  echo -e "  architecture:     ${GREEN}${HOST_ARCH}${NONE}"
+  echo -e "  operating system: ${GREEN}${HOST_OS}${NONE}"
+  echo -e "  kernel version:   ${GREEN}${HOST_KERNEL_VERSION}${NONE}"
+  echo -e "  distribution:     ${GREEN}${HOST_DISTRO}${NONE}"
+  echo -e "  CPU threads:      ${GREEN}${HOST_CPU_THREADS}${NONE}"
+  echo -e "------------------------------------------------------"
+
+  echo -e "- ${YELLOW}DISTRO PARAMETERS ${NONE}----------------------------------"
+  echo -e "  distro:           ${GREEN}${YOCTO_DISTRO}${NONE}"
+  echo -e "  version:          ${GREEN}${YOCTO_VERSION}${NONE}"
+  echo -e "------------------------------------------------------"
+
+  echo -e "- ${YELLOW}TARGET PARAMETERS ${NONE}----------------------------------"
+  echo -e "  targets:          ${GREEN}${TARGETS[@]}${NONE}"
+  echo -e "  external targets: ${GREEN}${TARGETS_EXTERNAL[@]}${NONE}"
+  echo -e "  package managers: ${GREEN}${PACKAGE_MANAGERS[@]}${NONE}"
+  echo -e "------------------------------------------------------"
+  
+  echo -e "- ${YELLOW}INSTALL PARAMETERS ${NONE}----------------------------------"
+  echo -e "  install folder:   ${GREEN}${INSTALL_FOLDER}${NONE}"
+  echo -e "  download folder:  ${GREEN}${DOWNLOAD_FOLDER}${NONE}"
+  echo -e "  ADT repo:         ${GREEN}${YOCTO_ADT_REPO}${NONE}"
+  echo -e "  log file:         ${GREEN}${LOG}${NONE}"
+  echo -e "  history file:     ${GREEN}${HISTORY}${NONE}"
+  echo -e "  install NFS:      ${GREEN}${HOST_INSTALL_NFS}${NONE}"
+  echo -e "  install Qemu:     ${GREEN}${HOST_INSTALL_QEMU}${NONE}"
+  echo -e "------------------------------------------------------"
+}
+
 print_host_info() {
   get_distro
   echo -e "- ${YELLOW}HOST PARAMETERS ${NONE}------------------------------------"
@@ -422,7 +444,7 @@ print_host_info() {
   echo -e "  operating system: ${GREEN}${HOST_OS}${NONE}"
   echo -e "  kernel version:   ${GREEN}${HOST_KERNEL_VERSION}${NONE}"
   echo -e "  distribution:     ${GREEN}${HOST_DISTRO}${NONE}"
-  echo -e "  CPU threads:      ${GREEN}${CPU_THREADS}${NONE}"
+  echo -e "  CPU threads:      ${GREEN}${HOST_CPU_THREADS}${NONE}"
   echo -e "------------------------------------------------------"
 
   echo -e "- ${YELLOW}TARGET PARAMETERS ${NONE}----------------------------------"
@@ -462,6 +484,7 @@ print_usage() {
   echo -e "--save-to-config     = <path_to_config>${NONE}"
   echo -e "                       [save values to specified config file]${NONE}"
   echo -e "--list-configs         [list available config files]"
+  echo -e "--set-external-targets-path = <path_to_folder>"
 }
 
 
@@ -483,14 +506,12 @@ if [[ -z "$1" ]]; then
   if [[ "${CONTINUE}" != "Y" ]];then
     print_usage
     exit
+  else 
+    print_host_info
+    #TODO installation
   fi
 fi
 
-
-############################################################
-# check for essential files, if not found, create default  #
-############################################################
-#prepare_essentials
 
 #######################
 # process parameters  #
@@ -503,18 +524,19 @@ case "$i" in
     echo -e "INSTALL FOLDER set to ${INSTALL_FOLDER}"
     prepare_essentials    
     ;;
-  --list-params) print_host_info # to list all parameters
+  --list-params) print_parameters # to list all parameters
+    prepare_essentials
     exit
     ;;
-  --list-targets)  echo "something" # list possible Yocto targets, available is "qemumips qemuppc qemux86 qemux86-64 genericx86 genericx86-64 beagleboard mpc8315e-rdb routerstationpro"
+  --list-targets) echo "available targets are qemumips qemuppc qemux86 qemux86-64 genericx86 genericx86-64 beagleboard mpc8315e-rdb routerstationpro"    
     ;;
   --set-targets) TARGETS="${i#*=}" # define target(s) separated by space, to see values use list_targets switch. Example "arm x86"
     ;;
   --list-rootfs) list_rootfs  
     ;;
-  --set-rootfs) set_rootfs "${i#*=}"
+  --set-rootfs=*) ROOTFS="${i#*=}"
     ;;
-  --set-package-system=*) PKG_MANAGER="${i#*=}"  # define packaging system, possible values: rpm, ipk, tar, deb
+  --set-package-system=*) PACKAGE_MANAGER="${i#*=}"  # define packaging system, possible values: rpm, ipk, tar, deb
     ;;
   --install-path) INSTALL_FOLDER="${i#*=}" # path to install dir
     ;;
@@ -532,9 +554,12 @@ case "$i" in
     ;;
   --interactive)
     INTERACTIVE="Y"
+    prepare_essentials
     run_interactive
     ;;
   --download--toolchain) download_toolchain
+    ;;
+  --set-external-targets-path=*) EXTERNAL_TARGETS_FOLDER="${i#*=}"
     ;;
   *) echo "invalid option!!!" 
     print_usage
