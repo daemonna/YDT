@@ -31,11 +31,9 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 # Purpose : Yocto development toolkit installer
-# Usage : 
+# Usage : run without paramaters to see usage
 #
 #coding guidelines: http://google-styleguide.googlecode.com/svn/trunk/shell.xml                         #
-
-args=("$@")
 
 ###################
 # TERMINAL COLORS #
@@ -51,6 +49,9 @@ VIOLET='\033[35m'
 CYAN='\033[36m'
 GREY='\033[37m'
 
+############################
+# system values            #
+############################
 NOW=$(date +"%s-%d-%m-%Y")
 
 ################
@@ -59,34 +60,43 @@ NOW=$(date +"%s-%d-%m-%Y")
 
 HOST_ARCH=$(uname -m)
 HOST_OS=$(uname -o)
-HOST_KERNEL=$(uname -r)
+HOST_KERNEL_VERSION=$(uname -r)
 HOST_DISTRO="N/A"
-PYTHON_VER=$(python -c 'import sys; print("%i" % (sys.hexversion<0x03000000))')
-INSTALL_QEMU="NO"
-INSTALL_NFS="NO"
-CPU_THREADS=$(cat /proc/cpuinfo|grep process|wc -l)
+HOST_PYTHON_VERSION=$(python -c 'import sys; print("%i" % (sys.hexversion<0x03000000))')
+HOST_INSTALL_QEMU="NO"
+HOST_INSTALL_NFS="NO"
+HOST_CPU_THREADS=$(cat /proc/cpuinfo|grep process|wc -l)
 
 ###################
 # target values   #
 ###################
-TARGETS="arm"  #(qemumips qemuppc qemux86 qemux86-64 genericx86 genericx86-64 beagleboard mpc8315e-rdb routerstationpro)
-PACKAGE_MANAGER="ipk" #(rpm ipk tar deb)
+declare -a TARGETS=("qemumips" "qemuppc" "qemux86" "qemux86-64" "genericx86" "genericx86-64" "beagleboard" "mpc8315e-rdb" "routerstationpro")
+declare -a TARGETS_EXTERNAL
+declare -a PACKAGE_MANAGERS=("rpm" "ipk" "tar" "deb")
+PACKAGE_MANAGER="ipk" #default package manager
 
 
 #######################
 # Global adt values   #
 #######################
-INSTALL_FOLDER=$(pwd) #current location as default
-DOWNLOAD_FOLDER="$(pwd)/down" #The central download directory used by the build process to store downloads
+INSTALL_FOLDER="$(pwd)/.ydt" #current location as default
+DOWNLOAD_FOLDER="$(pwd)/.ydt/down" #The central download directory used by the build process to store downloads
 YOCTO_ADT_REPO="http://downloads.yoctoproject.org/releases/yocto/yocto-1.5.1/"
-LOG="$INSTALL_FOLDER/log/adt_ng.log"
-HISTORY="$HOME/.adt/history"
-INTERACTIVE="N"
+LOG_FOLDER="$HOME/.ydt/log"
+LOG="${LOG_FOLDER}/ydt_ng.log"
+HISTORY="$HOME/.ydt/history"
+INTERACTIVE="N" #by default not interactive
 
-
+############################
+# YOCTO version            #
+############################
 YOCTO_VERSION="1.5.1"
 YOCTO_DISTRO="poky"
 
+
+########################
+# logging functions    #
+########################
 adt_log_write() {
   echo "[$NOW] $1 $2" >> $LOG 
 }
@@ -96,6 +106,11 @@ adt_history_write() {
 }
 
 
+####################################################################################################
+#                                                                                                  #
+# DISTRO RELATED FUNCTIONS                                                                         #
+####################################################################################################
+
 #########################################
 # find out type of linux distro of HOST #
 #########################################
@@ -104,7 +119,7 @@ get_distro() {
   echo -e "\ninitializing adt-installer NG\n"
   adt_log_write "initializing adt-installer" "INFO"
   echo -e "checking for right Python version.."
-  if [ ${PYTHON_VER} -eq 0 ]; then
+  if [ ${HOST_PYTHON_VERSION} -eq 0 ]; then
     echo -e "${RED}[ERROR]${NONE} we require python version 2.x"
     exit
   else 
@@ -199,18 +214,133 @@ install_adt_extras() {
   esac
 }
 
+###############################
+#  install qemu (default NO)  #
+###############################
+install_qemu() {
+  case "${HOST_DISTRO}" in
+  redhat) yum install autoconf automake libtool glib2-devel
+    ;;
+  suse) zypper install autoconf automake libtool glib2-devel
+    ;;
+  debian) apt-get install autoconf automake libtool libglib2.0-dev
+    ;;
+  *) echo "DISTRO error"
+    exit 1
+    ;;
+  esac
 
-##########################
-# to list all parameters #
-##########################
-list_params() {
-  echo -e "PARAMETERS:"
-  echo -e "--------------------------------------------------------------"
+}
+
+########################
+# install NFS          #
+########################
+install_nfs() {
+  case "${HOST_DISTRO}" in
+  redhat) yum install autoconf automake libtool glib2-devel
+    ;;
+  suse) zypper install autoconf automake libtool glib2-devel
+    ;;
+  debian) apt-get install autoconf automake libtool libglib2.0-dev
+    ;;
+  *) echo "DISTRO error"
+    exit 1
+    ;;
+  esac
 }
 
 
+
+####################################################################################################
+#                                                                                                  #
+# INITIAL CHECKS, SELF-HEALING FEATURES, BACKUPS                                                   #                                          ####################################################################################################  
+
+##############################################
+# prepare essential folders and config files #
+##############################################                                                                   
+prepare_essentials() {
+  echo -e "\ninitializing CHECKs"
+  echo ""
+  printf "checking for user rights..   "
+##########################
+# check if user is root  #
+##########################
+  if [ $(id -u) == "0" ]; then
+    echo -e "${RED}"
+    echo -e "#######################################################"
+    echo -e "# WARNING!!! running script as ROOT USER              #"
+    echo -e "# Are you sure you want to run this script as root?   #"
+    echo -e "# User access to ROOT's files can be limited!!!       #"
+    echo -e "#######################################################"
+    echo -e "${NONE}[Y/n]"
+    read USER_INPUT
+    if [[ "${USER_INPUT}" == "Y" ]];then
+      printf "[OK]"
+    else
+      echo "exiting"
+      exit
+    fi
+  else
+    echo "running as $USER.. OK"
+  fi
+
+
+###############################
+# check for top .ydt folder   #
+###############################
+  echo -e "checking for .ydt folder..."
+  if [[ -d $HOME/.ydt ]];then
+    echo -e "you're running ADT installer for first time as ${GREEN}${USER}${NONE}"
+  else
+    echo -e "no .ydt folder... creating in $HOME/.ydt ."
+    mkdir $HOME/.ydt
+  fi
+
+####################### 
+# check CONFIG files  #
+#######################
+  if [[ -d $HOME/.ydt/configs ]];then
+    echo "config found... OK"
+  else
+    echo "missing config directory... creating default one"
+    mkdir $HOME/.ydt/configs
+    echo "creating default config file"
+    touch $HOME/.ydt/configs/default.config
+    echo "writing default parameters into config"
+    echo "#autogenerated default config" >> $HOME/.ydt/configs/default.config
+    echo "# logged on [$NOW]"
+    echo -e "--set-targets=\"arm\" --set-rootfs=\"sato-sdk\" --install-path=\"$HOME\" --set-package-system=\"ipk\"" >> $HOME/.ydt/configs/default.config
+  fi
+
+#######################
+# check HISTORY file  #
+#######################
+  if [[ -f $HISTORY ]];then
+    echo "history found... OK"
+  else 
+    echo "history not found... creating new one"
+    touch $HISTORY
+    adt_history_write "history initialized"
+  fi
+}
+
+########################
+# check log file       #
+########################
+  if [[ -d $LOG_FOLDER ]];then
+    echo "$LOG_FOLDER exists.. OK"
+  else
+    echo "$LOG_FOLDER not found.. creating one"
+    mkdir $LOG_FOLDER
+  fi
+
+
+####################################################################################################
+#                                                                                                  #
+
 #########################################################################################
-#  list possible Yocto targets, available is "qemumips qemuppc qemux86 qemux86-64 genericx86 genericx86-64 beagleboard mpc8315e-rdb routerstationpro"
+#  list possible Yocto targets, available is "qemumips qemuppc 
+# qemux86 qemux86-64 genericx86 genericx86-64 beagleboard mpc8315e-rdb routerstationpro"
 ########################################################################################
 list_targets() {
   echo "available targets:"
@@ -250,50 +380,39 @@ set_package_system() {
   echo "something"
 }
 
-# path to install dir
-install_path() {
 
-  echo "something"
+###############################
+# download specific toolchain #
+###############################
+download_toolchain() {
+  echo "DOWNLOADING http://downloads.yoctoproject.org/releases/yocto/yocto-${YOCTO_VERSION}/toolchain/${YOCTO_DISTRO}-eglibc-${HOST_ARCH}-core-image-sato-${TARGET}-toolchain-1.5.1.sh"
+  wget -O $DOWNLOAD_FOLDER/${YOCTO_DISTRO}-eglibc-${HOST_ARCH}-core-image-sato-${TARGET}-toolchain-${YOCTO_VERSION}.sh http://downloads.yoctoproject.org/releases/yocto/yocto-${YOCTO_VERSION}/toolchain/${YOCTO_DISTRO}-eglibc-${HOST_ARCH}-core-image-sato-${TARGET}-toolchain-${YOCTO_VERSION}.sh   
 }
 
+
+run_interactive() {
+  echo -e "welcome to interactive mode"
+  print_host_info
+}
+
+
+####################################################################################################
+#                                                                                                  #
+# INFO                                                                                             #
+####################################################################################################
+
+##################################
+# print history of installations #
+##################################
 show_history() {
+  echo -e "\nHISTORY.......................\n"
   cat $HISTORY 
 }
 
-#  install qemu (default NO)
-install_qemu() {
-  case "${HOST_DISTRO}" in
-  redhat) yum install autoconf automake libtool glib2-devel
-    ;;
-  suse) zypper install autoconf automake libtool glib2-devel
-    ;;
-  debian) apt-get install autoconf automake libtool libglib2.0-dev
-    ;;
-  *) echo "DISTRO error"
-    exit 1
-    ;;
-  esac
-
+list_configs() {
+  echo -e "\nFollowing configs were found.."
+  ls $HOME/.ydt/configs/
 }
-
-install_nfs() {
-  case "${HOST_DISTRO}" in
-  redhat) yum install autoconf automake libtool glib2-devel
-    ;;
-  suse) zypper install autoconf automake libtool glib2-devel
-    ;;
-  debian) apt-get install autoconf automake libtool libglib2.0-dev
-    ;;
-  *) echo "DISTRO error"
-    exit 1
-    ;;
-  esac
-}
-
-
-###########################################################
-#  MAIN FUNCTION                                          #
-###########################################################
 
 print_host_info() {
   get_distro
@@ -301,7 +420,7 @@ print_host_info() {
 
   echo -e "  architecture:     ${GREEN}${HOST_ARCH}${NONE}"
   echo -e "  operating system: ${GREEN}${HOST_OS}${NONE}"
-  echo -e "  kernel version:   ${GREEN}${HOST_KERNEL}${NONE}"
+  echo -e "  kernel version:   ${GREEN}${HOST_KERNEL_VERSION}${NONE}"
   echo -e "  distribution:     ${GREEN}${HOST_DISTRO}${NONE}"
   echo -e "  CPU threads:      ${GREEN}${CPU_THREADS}${NONE}"
   echo -e "------------------------------------------------------"
@@ -346,92 +465,32 @@ print_usage() {
 }
 
 
-prepare_essentials() {
-  echo -e "\ninitializing CHECKs"
-  echo ""
-  printf "checking for user rights..   "
-##########################
-# check if user is root  #
-##########################
-  if [ $(id -u) == "0" ]; then
-    echo -e "${RED}"
-    echo -e "#######################################################"
-    echo -e "# WARNING!!! running script as ROOT USER              #"
-    echo -e "# Are you sure you want to run this script as root?   #"
-    echo -e "# User access to ROOT's files can be limited!!!       #"
-    echo -e "#######################################################"
-    echo -e "${NONE}[Y/n]"
-    read USER_INPUT
-    if [[ "${USER_INPUT}" == "Y" ]];then
-      printf "[OK]"
-    else
-      echo "exiting"
-      exit
-    fi
-  else
-    echo "running as root.. OK"
-  fi
-
-
-###############################
-# check for top .adt folder   #
-###############################
-  echo -e "checking for .adt folder..."
-  if [[ -d $HOME/.adt ]];then
-    echo -e "you're running ADT installer for first time as ${GREEN}${USER}${NONE}"
-  else
-    echo -e "no .adt folder... creating in $HOME/.adt ."
-    mkdir $HOME/.adt
-  fi
-
-####################### 
-# check CONFIG files  #
-#######################
-  if [[ -d $HOME/.adt/configs ]];then
-    echo "config found... OK"
-  else
-    echo "missing config directory... creating default one"
-    mkdir $HOME/.adt/configs
-    echo "#autogenerated default config" >> $HOME/.adt/configs/default.config
-    echo "# logged on [$NOW]"
-    echo "--set-targets=\"arm\" --set-rootfs=\"sato-sdk\" --install-path=\"$HOME\" --set-package-system=\"ipk\"" > $HOME/.adt/configs/default.config
-  fi
-
-#######################
-# check HISTORY file  #
-#######################
-  if [[ -f $HISTORY ]];then
-    echo "history found... OK"
-  else 
-    echo "history not found... creating new one"
-    touch $HISTORY
-    adt_history_write "history initialized"
-  fi
-}
 
 
 
-download_toolchain() {
-  echo "DOWNLOADING http://downloads.yoctoproject.org/releases/yocto/yocto-${YOCTO_VERSION}/toolchain/${YOCTO_DISTRO}-eglibc-${HOST_ARCH}-core-image-sato-${TARGET}-toolchain-1.5.1.sh"
-  wget http://downloads.yoctoproject.org/releases/yocto/yocto-${YOCTO_VERSION}/toolchain/${YOCTO_DISTRO}-eglibc-${HOST_ARCH}-core-image-sato-${TARGET}-toolchain-${YOCTO_VERSION}.sh   
-}
 
+####################################################################################################
+#                                                                                                  #
+# MAIN FUNCTION                                                                                    #
+####################################################################################################
 
-######################################
-#                                    #
-# MAIN                               #
-######################################
-
-# if no parameters, print help
+# if no parameters, run interactive
 if [[ -z "$1" ]]; then
-  print_usage
+  echo -e "${RED}###################################################################${NONE}"
+  echo -e "${RED}# Are you sure you want to run installer with default parameters? #${NONE}"
+  echo -e "${RED}###################################################################${NONE}"
+  read CONTINUE
+  if [[ "${CONTINUE}" != "Y" ]];then
+    print_usage
+    exit
+  fi
 fi
 
 
 ############################################################
 # check for essential files, if not found, create default  #
 ############################################################
-prepare_essentials
+#prepare_essentials
 
 #######################
 # process parameters  #
@@ -439,6 +498,11 @@ prepare_essentials
 for i in "$@"
 do
 case "$i" in
+  --install-folder=*) INSTALL_FOLDER="${i#*=}"
+    LOG_FOLDER="${INSTALL_FOLDER}/log"
+    echo -e "INSTALL FOLDER set to ${INSTALL_FOLDER}"
+    prepare_essentials    
+    ;;
   --list-params) print_host_info # to list all parameters
     exit
     ;;
@@ -448,7 +512,7 @@ case "$i" in
     ;;
   --list-rootfs) list_rootfs  
     ;;
-  --set-rootfs)  set_rootfs "${i#*=}"
+  --set-rootfs) set_rootfs "${i#*=}"
     ;;
   --set-package-system=*) PKG_MANAGER="${i#*=}"  # define packaging system, possible values: rpm, ipk, tar, deb
     ;;
@@ -456,16 +520,19 @@ case "$i" in
     ;;
   --show-history) show_history
     ;;
-  --install-qemu)  echo "something" #  install qemu (default NO)
+  --install-qemu) echo "something" #  install qemu (default NO)
     ;;
-  --install-nfs)  echo "something" # install nfs  (default NO)
+  --install-nfs) echo "something" # install nfs  (default NO)
     ;;
-  --save-to-config)   echo "something" # save values to config
+  --save-to-config) echo "something" # save values to config
     ;;
-  --load-from-config)  echo "something"
+  --load-from-config) echo "something"
+    ;;
+  --list-configs) list_configs
     ;;
   --interactive)
     INTERACTIVE="Y"
+    run_interactive
     ;;
   --download--toolchain) download_toolchain
     ;;
