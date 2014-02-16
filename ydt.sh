@@ -287,7 +287,7 @@ install_nfs() {
 
 ####################################################################################################
 #                                                                                                  #
-# INITIAL CHECKS, SELF-HEALING FEATURES, BACKUPS                                                   #                                          ####################################################################################################  
+# INITIAL CHECKS, SELF-HEALING FEATURES, BACKUPS                                                   #                                          #################################################################################################### 
 
 ##############################################
 # prepare essential folders and config files #
@@ -529,7 +529,7 @@ print_usage() {
   print_parameters
   echo -e "\nUsage:\n"
   echo -e "--interactive            [enter interactive mode where installer will ask for every parameter]"
-  echo -e "--list-params            [list all parameters]"
+  echo -e "--list-parameters        [list all parameters]"
   echo -e "--list-targets           [list all available targets]"
   echo -e "--set-targets          = ${GREEN}qemuarm qemuppc qemux86 qemux86-64 genericx86 genericx86-64 beagleboard mpc8315e-rdb routerstationpro${NONE}"
   echo -e "                         [external targets] ${GREEN}${EXT_TARGETS}${NONE}"
@@ -602,15 +602,17 @@ case "$i" in
     LOG_FOLDER="${INSTALL_FOLDER}/log"
     echo -e "INSTALL FOLDER set to ${INSTALL_FOLDER}"   
     ;;
-  --list-params) print_parameters # to list all parameters
+  --list-parameters) print_parameters # to list all parameters
     exit
     ;;
-  --list-targets) list_targets  
+  --list-targets) list_targets 
+    exit 
     ;;
   --set-targets=*) TARGETS=("${i#*=}") # define target(s) separated by space, to see values use list_targets switch. Example "arm x86"
     print_parameters
     ;;
   --list-rootfs) list_rootfs  
+    exit
     ;;
   --set-rootfs=*) ROOTFS="${i#*=}"
     ;;
@@ -631,6 +633,7 @@ case "$i" in
   --load-from-config) echo "something"
     ;;
   --list-configs) list_configs
+    exit
     ;;
   --interactive)
     INTERACTIVE="Y"
