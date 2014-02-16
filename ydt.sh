@@ -306,14 +306,15 @@ prepare_essentials() {
 ########################
   if [[ -d $LOG_FOLDER ]];then
     echo "$LOG_FOLDER exists.. OK"
-    adt_log_write "                               " "new entry"
+    adt_log_write "                               " ""
+    adt_log_write "installer run by $USER" "INFO"
   else
     echo "$LOG_FOLDER not found.. creating one"
     mkdir $LOG_FOLDER
     touch ${LOG_FOLDER}/ydt_ng.log
     echo "#created on ${NOW}" >> ${LOG_FOLDER}/ydt_ng.log
     adt_log_write "                               " "new entry"
-    adt_log_write "FIRST INITIALIZATION" "INFO"
+    adt_log_write "FIRST INITIALIZATION, run by $USER" "INFO"
     adt_log_write "log file missing.. recreated in ${LOG_FOLDER}" "WARNING"
   fi
 
@@ -401,6 +402,10 @@ run_interactive() {
 
 
 run_installer() {
+  echo "running INSTALLER"
+  adt_log_write "running INSTALLER" "INFO"
+  adt_history_write "running INSTALLER"
+
   if [[ "${INTERACTIVE}" == "Y" ]];then
     adt_log_write "running interactive mode.. collecting user input" "INFO"
     adt_history_write "running interactive mode.. collecting user input"
@@ -507,6 +512,7 @@ print_usage() {
   echo -e "--set-download-folder  = <path>"
   echo -e "--clean-download-folder  [to clean all downloads]"
   echo -e "--view-log               [view log file content]"
+  echo -e "--clear-log              [delete log file]"
 }
 
 
@@ -535,8 +541,7 @@ if [[ -z "$1" ]]; then
     print_usage
     exit
   else 
-    print_parameters
-    run_installer
+    echo "skipping to installer"
   fi
 fi
 
@@ -599,6 +604,10 @@ case "$i" in
       fi
       exit
     ;;
+  --clear-log) rm -rf ${LOG_FOLDER}/ydt_ng.log
+    echo "log file deleted at ${NOW} by ${USER}"    
+    LOG_CLEARED="Y"
+    ;;
   *) echo "invalid option!!!" 
     print_usage
     ;;
@@ -607,6 +616,12 @@ done
 
 LOG_FOLDER="${INSTALL_FOLDER}/log"
 prepare_essentials
+
+if [[ "${LOG_CLEARED}" == "Y" ]];then
+  echo "log file deleted at ${NOW} by ${USER}" > ${LOG_FOLDER}/ydt_ng.log
+  exit
+fi
+
 adt_log_write "INITIALIZATION finished" "INFO"
 adt_history_write "INITIALIZATION finished"
 
