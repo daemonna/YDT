@@ -33,7 +33,17 @@
 # Purpose : Yocto development toolkit installer
 # Usage : run without paramaters to see usage
 #
-#coding guidelines: http://google-styleguide.googlecode.com/svn/trunk/shell.xml                         #
+#coding guidelines: http://google-styleguide.googlecode.com/svn/trunk/shell.xml                         
+
+
+
+
+
+
+####################################################################################################
+#                                                                                                  #
+# GLOBAL VALUES                                                                                    #
+####################################################################################################
 
 ###################
 # TERMINAL COLORS #
@@ -96,6 +106,17 @@ YOCTO_VERSION="1.5.1"
 YOCTO_DISTRO="poky"
 
 
+
+
+
+
+
+
+####################################################################################################
+#                                                                                                  #
+# LOGGING FUNCTIONS                                                                                #
+####################################################################################################
+
 ########################
 # logging functions    #
 ########################
@@ -108,6 +129,11 @@ adt_history_write() {
   #echo "history writes [$NOW] $1"
   echo "[$NOW] $1" >> $HISTORY
 }
+
+
+
+
+
 
 
 ####################################################################################################
@@ -256,6 +282,9 @@ install_nfs() {
 
 
 
+
+
+
 ####################################################################################################
 #                                                                                                  #
 # INITIAL CHECKS, SELF-HEALING FEATURES, BACKUPS                                                   #                                          ####################################################################################################  
@@ -352,20 +381,24 @@ prepare_essentials() {
 
 
 
+
+
 ####################################################################################################
 #                                                                                                  #
+# COMMON FUNCTIONS                                                                                 #
+####################################################################################################
 
-#########################################################################################
-#  list possible Yocto targets, available is "qemumips qemuppc 
-# qemux86 qemux86-64 genericx86 genericx86-64 beagleboard mpc8315e-rdb routerstationpro"
-########################################################################################
+###################################
+#  list possible Yocto targets    #
+###################################
 list_targets() {
   echo -e "available targets:"
   echo -e "${GREEN}qemumips qemuppc qemux86 qemux86-64 genericx86 genericx86-64 beagleboard mpc8315e-rdb routerstationpro${NONE}"
 }
 
-
-# define target(s) separated by space, to see values use list_targets switch. Example "arm x86"
+################################################################################ 
+# define target(s) separated by space, to see values use list_targets switch.  #
+################################################################################ 
 set_targets() {
   if [[ "${INTERACTIVE}" == "Y" ]];then
     echo -e "your HOST is ${GREEN}${HOST_ARCH}${NONE}, what targets you want to install?"
@@ -378,7 +411,9 @@ set_targets() {
   fi
 }
 
-# must get "minimal minimal-dev sato sato-dev sato-sdk lsb lsb-dev lsb-sdk"​
+#############################
+# list available rootfs     #
+#############################
 list_rootfs() {
   echo -e "available rootfs:"
   echo -e "${GREEN}minimal minimal-dev sato sato-dev sato-sdk lsb lsb-dev lsb-sdk${NONE}"
@@ -428,6 +463,12 @@ run_installer() {
   adt_log_write "end of install" "INFO"
   adt_history_write "end of install"
 }
+
+
+
+
+
+
 
 ####################################################################################################
 #                                                                                                  #
@@ -517,9 +558,14 @@ print_usage() {
 
 
 print_banner() {
-  echo -e "\/ _  __|_ _"
+  echo -e "\n\/ _  __|_ _"
   echo -e "/ (_)(_ | (_) development toolkit\n"
 }
+
+
+
+
+
 
 
 
@@ -631,5 +677,7 @@ run_installer
 # continue with params set #
 ############################
 
-
+##############################
+# END OF INSTALER            #
+##############################
 exit $?
