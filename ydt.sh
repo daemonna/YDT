@@ -85,7 +85,6 @@ declare -a TARGETS_EXTERNAL
 declare -a PACKAGE_MANAGERS=("rpm" "ipk" "tar" "deb")
 PACKAGE_MANAGER="ipk" #default package manager
 
-
 #######################
 # Global adt values   #
 #######################
@@ -98,15 +97,13 @@ LOG="${LOG_FOLDER}/ydt_ng.log"
 HISTORY="${HOME}/.ydt/history"
 EXTERNAL_TARGETS_FOLDER="${HOME}/.ydt/external_targets"
 INTERACTIVE="N" #by default not interactive
+FULL_INSTALL="N"
 
 ############################
 # YOCTO version            #
 ############################
 YOCTO_VERSION="1.5.1"
 YOCTO_DISTRO="poky"
-
-
-
 
 
 
@@ -465,7 +462,76 @@ run_installer() {
 }
 
 
+#TODO
+build_full_distro() {
+  echo "The build process using Sato currently consumes about 50GB of disk space. To allow for variations in the build process and for future package expansion, we recommend having at least 100GB of free disk space."
 
+
+  wget http://downloads.yoctoproject.org/releases/yocto/yocto-1.5.1/poky-dora-10.0.1.tar.bz2
+#OR
+  git clone git://git.yoctoproject.org/poky
+
+  tar xjf poky-dora-10.0.1.tar.bz2
+  cd poky-dora-10.0.1
+
+#From the parent directory your Source Directory, initialize your environment and provide a meaningful Build Directory name:
+
+     #$ source poky/oe-init-build-env mybuilds
+
+  source oe-init-build-env
+
+#Initializing the build environment creates a conf/local.conf configuration file in the Build Directory. You need to manually edit this file to specify the machine you are building and to optimize your build time. Here are the minimal changes to make:
+
+#     BB_NUMBER_THREADS = "8"
+#     PARALLEL_MAKE = "-j 8"
+#     MACHINE ?= "beagleboard"
+            
+#Briefly, set BB_NUMBER_THREADS and PARALLEL_MAKE to twice your host processor's number of cores.
+
+#By default, the OpenEmbedded build system uses the RPM package manager. 
+
+  bitbake -k core-image-sato
+#OR
+  bitbake core-image-minimal
+
+  runqemu qemux86
+}
+
+install_toolchain() {
+#You can download a tarball installer, which includes the pre-built toolchain, the runqemu script, and support files from the appropriate directory under http://downloads.yoctoproject.org/releases/yocto/yocto-1.5.1/toolchain/. Toolchains are available for 32-bit and 64-bit x86 development systems from the i686 and x86_64 directories, respectively. The toolchains the Yocto Project provides are based off the core-image-sato image and contain libraries appropriate for developing against that image. Each type of development system supports five or more target architectures.
+
+#The names of the tarball installer scripts are such that a string representing the host system appears first in the filename and then is immediately followed by a string that represents the target architecture.
+
+     #poky-eglibc-<host_system>-<image_type>-<arch>-toolchain-<release_version>.sh
+
+     #Where:
+         #<host_system> is a string representing your development system:
+
+                    #i686 or x86_64.
+
+         #<image_type> is a string representing the image you wish to
+                #develop a Software Development Toolkit (SDK) for use against.
+                #The Yocto Project builds toolchain installers using the
+                #following BitBake command:
+
+                    #bitbake core-image-sato -c do_populatesdk core-image-sato
+
+         #<arch> is a string representing the tuned target architecture:
+
+                    #i586, x86_64, powerpc, mips, armv7a or armv5te
+
+         #<release_version> is a string representing the release number of the
+                #Yocto Project:
+
+                    #1.5.1, 1.5.1+snapshot
+            
+#F#or example, the following toolchain installer is for a 64-bit development host system and a i586-tuned target architecture based off the SDK for core-image-sato:
+
+     #poky-eglibc-x86_64-core-image-sato-i586-toolchain-1.5.1.sh
+                
+#Toolchains are self-contained and by default are installed into /opt/poky. However, when you run the toolchain installer, you can choose an installation directory.
+
+}
 
 
 
@@ -554,12 +620,14 @@ print_usage() {
   echo -e "--clean-download-folder  [to clean all downloads]"
   echo -e "--view-log               [view log file content]"
   echo -e "--clear-log              [delete log file]"
+  echo -e "--install-full-yocto     []"
+  echo -e "--install-toolchain-only []"
 }
 
 
 print_banner() {
-  echo -e "\n\/ _  __|_ _"
-  echo -e "/ (_)(_ | (_) development toolkit\n"
+  echo -e "\n \/ _  __|_ _                           "
+  echo -e " / (_)(_ | (_) development toolkit      \n"
 }
 
 
@@ -656,6 +724,10 @@ case "$i" in
   --clear-log) rm -rf ${LOG_FOLDER}/ydt_ng.log
     echo "log file deleted at ${NOW} by ${USER}"    
     LOG_CLEARED="Y"
+    ;;
+  --install-full-yocto) FULL_INSTALL="Y"
+    ;;
+  --install-toolchain-only) FULL_INSTALL="N"
     ;;
   *) echo "invalid option!!!" 
     print_usage
