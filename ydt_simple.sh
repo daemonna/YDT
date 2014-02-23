@@ -59,6 +59,26 @@ INSTALL_DIR="/opt/poky/1.5.1"  #default as adt installer
 ###############################
 install_full_yocto() {
 
+  cd ${INSTALL_DIR}
+  wget ${YOCTO_REPO}/poky-dora-10.0.1.tar.bz2
+  tar xvjf poky-dora-10.0.1.tar.bz2
+
+  # source directory to default 'build' dir
+  source ${YOCTO_DISTRO}/oe-init-build-env
+
+  # change MACHINE in conf/local.conf
+  sed -i "s/MACHINE ??= \"qemux86\"/MACHINE ??= \"${TARGETS[@]}\"/g" conf/local.conf
+
+  echo "going to run bitbake (but sleeping 200s)"
+  sleep 400
+  #run bitbake and build
+  bitbake -c fetchall ${IMAGE_RECIPE}  #first just fetch all packages
+  bitbake ${IMAGE_RECIPE}  #then build YOCTO
+}
+
+install_full_yocto_devel() {
+
+  cd ${INSTALL_DIR}
 
   if [[ -d ${INSTALL_DIR}/${YOCTO_DISTRO} ]];then
     if [[ -d ${INSTALL_DIR}/${YOCTO_DISTRO}/.git ]];then
@@ -83,6 +103,9 @@ install_full_yocto() {
   bitbake -c fetchall ${IMAGE_RECIPE}  #first just fetch all packages
   bitbake ${IMAGE_RECIPE}  #then build YOCTO
 }
+
+
+
 
 ############################
 # toolchain installer      #
@@ -173,8 +196,9 @@ echo -e "welcom to simple YOCTO installer"
 echo -e "##################################################"
 
 echo -e "do you want to proceed with:"
-echo -e "[1] full YOCTO install"
-echo -e "[2] toolchain only"
+echo -e "[1] full Poky 10.0.1 install (stable)"
+echo -e "[2] full Poky install (cutting edge)"
+echo -e "[3] toolchain only"
 echo "enter your choice:"
 read CHOICE
 
@@ -184,7 +208,9 @@ collect_user_data
 case "${CHOICE}" in
 1) install_full_yocto
   ;;
-2) install_toolchain_only
+2) install_full_yocto_devel
+  ;;
+3) install_toolchain_only
   ;;
 *) echo "wrong choice"
   ;;
