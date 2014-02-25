@@ -34,40 +34,131 @@
 # Usage : run without paramaters to see usage
 #
 
-# HOST data
-HOST_ARCH=$(uname -m)
-HOST_OS=$(uname -o)
-HOST_KERNEL_VERSION=$(uname -r)
 
-# YOCTO data
+######################
+# terminal colors    #
+######################
+
+NONE='\033[00m'
+RED='\033[01;31m'
+GREEN='\033[01;32m'
+YELLOW='\033[01;33m'
+BLACK='\033[30m'
+BLUE='\033[34m'
+VIOLET='\033[35m'
+CYAN='\033[36m'
+GREY='\033[37m'
+
+######################
+# default values     #
+######################
+
 YOCTO_VERSION="1.5.1"
 YOCTO_DISTRO="poky"
 YOCTO_REPO="http://downloads.yoctoproject.org/releases/yocto/yocto-${YOCTO_VERSION}"
 INSTALL_DIR="/opt/poky/1.5.1"  #default as adt installer
 
+######################
+# HOST values        #
+######################
 
-declare -a DISTROS=($(ls ${INSTALL_DIR}/poky/meta*/conf/distro/*.conf| grep 'conf/distro/' | cut -d '/' -f 6 | cut -d '.' -f 1))
-declare -a MACHINES=($(ls ${INSTALL_DIR}/poky/meta*/conf/machine/*.conf| cut -d '/' -f 6 | cut -d '.' -f 1))
-declare -a IMAGES=($(ls ${INSTALL_DIR}/poky/meta*/recipe*/images/*.bb |cut -d '/' -f 6 | cut -d '.' -f 1))
-
-
-
-# TARGET
-declare -a TARGET_ARCHS=("armv5te" "armv7a" "i586" "mips32" "ppc7400" "ppce500v2" "x86_64" )
-declare -a TARGETS=("qemumips" "qemuppc" "qemux86" "qemux86-64" "genericx86" "genericx86-64" "beagleboard" "mpc8315e-rdb" "routerstationpro")
+HOST_ARCH=$(uname -m)
+HOST_OS=$(uname -o)
+HOST_KERNEL_VERSION=$(uname -r)
+CPU_THREADS=$(cat /proc/cpuinfo |grep processor|wc -l)
+declare -a DISTROS=()
+declare -a MACHINES=()
+declare -a IMAGES=()
 declare -a PACKAGE_MANAGERS=("rpm" "tar" "deb" "ipk")
 
-IMAGE_RECIPE="core-image-sato" #default for toolchains
-TARGET="qemux86" #or MACHINE in config
+
+
+############################
+# collect info from user   #
+############################
+collect_user_data() {
+
+  # CPU THREADS setting
+  echo -e "Your machine has ${CPU_THREADS} cores/thread. How many of them you want to use for building?"
+  echo -e "[${CPU_THREADS}]"
+  if [[ ! -z ${THREADS} ]];then
+    read -a TARGETS <<<${TRG}
+  fi
+
+
+#TODO select install folder
+
+  DISTROS=($(ls ${INSTALL_DIR}/meta*/conf/distro/*.conf| grep 'conf/distro/' | cut -d '/' -f 9 | cut -d '.' -f 1))
+  MACHINES=($(ls ${INSTALL_DIR}/meta*/conf/machine/*.conf| cut -d '/' -f 9 | cut -d '.' -f 1))
+  IMAGES=($(ls ${INSTALL_DIR}/meta*/recipe*/images/*.bb |cut -d '/' -f 9 | cut -d '.' -f 1))
+
+
+  echo -e "Select target MACHINE: (${TARGETS[@]})"
+  read TRG
+  if [[ ! -z ${TRG} ]];then
+    read -a TARGETS <<<${TRG}
+  fi
+  
+
+  echo -e "Select IMAGE recipe: (${IMAGES[@]})"
+  read TRGA
+  if [[ ! -z ${TRGA} ]];then
+    read -a TARGET_ARCHS <<<${TRGA}
+  fi
+  
+
+  echo -e "choose package manager ${PACKAGE_MANAGERS[@]}:"
+  read PKG
+  if [[ ! -z ${PKG} ]];then
+    read -a PACKAGE_MANAGERS <<<${PKG}
+  fi
+  
+
+  echo -e "choose image type ${IMAGE_RECIPE}:"
+  read IMGTYPE
+  if [[ ! -z ${IMGTYPE} ]];then
+    IMAGE_RECIPE=${IMGTYPE}
+  fi
 
 
 
+  echo -e "Choose install directory [${INSTALL_DIR}]:"
+  read INSTDIR
+  if [[ ! -z ${INSTDIR} ]];then
+    INSTALL_DIR=${INSTDIR}
+  fi
+  
+  
+#check if folder exists
+  if [[ -d ${INSTALL_DIR} ]];then
+    echo "changing to install dir ${INSTALL_DIR}"
+    cd ${INSTALL_DIR}
+  else
+    echo "not found.. creating ${INSTALL_DIR}"
+    mkdir ${INSTALL_DIR}
+    cd ${INSTALL_DIR}
+  fi
 
+
+
+  
+
+  echo -e "\n\nSummary:"
+  echo "install dir set to ${INSTALL_DIR}"
+  echo "target set to ${TARGETS[@]}"
+  echo "target MACHINE set to ${MACHINES[@]}"
+  echo "package manager set to ${PACKAGE_MANAGERS}"
+  echo "image type set to ${IMAGES[@]}"
+  sleep 40000
+}
 
 ###############################
 # install full yocto          #
 ###############################
 install_full_yocto() {
+
+  echo "full yocto (STABLE)"
+  sleep 400
 
   cd ${INSTALL_DIR}
   wget ${YOCTO_REPO}/poky-dora-10.0.1.tar.bz2
@@ -89,6 +180,9 @@ install_full_yocto() {
 install_full_yocto_devel() {
 
   cd ${INSTALL_DIR}
+
+  echo "full yocto devel (GIT)"
+  sleep 400
 
   if [[ -d ${INSTALL_DIR}/${YOCTO_DISTRO} ]];then
     if [[ -d ${INSTALL_DIR}/${YOCTO_DISTRO}/.git ]];then
@@ -137,64 +231,7 @@ install_toolchain_only() {
 }
 
 
-############################
-# collect info from user   #
-############################
-collect_user_data() {
 
-  echo -e "choose install directory [${INSTALL_DIR}]:"
-  read INSTDIR
-  if [[ ! -z ${INSTDIR} ]];then
-    INSTALL_DIR=${INSTDIR}
-  fi
-  
-  
-#check if folder exists
-  if [[ -d ${INSTALL_DIR} ]];then
-    echo "changing to install dir ${INSTALL_DIR}"
-    cd ${INSTALL_DIR}
-  else
-    echo "not found.. creating ${INSTALL_DIR}"
-    mkdir ${INSTALL_DIR}
-    cd ${INSTALL_DIR}
-  fi
-
-  echo -e "choose target [${TARGETS[@]}]:"
-  read TRG
-  if [[ ! -z ${TRG} ]];then
-    read -a TARGETS <<<${TRG}
-  fi
-  
-
-  echo -e "choose target architecture [${TARGET_ARCHS[@]}]:"
-  read TRGA
-  if [[ ! -z ${TRGA} ]];then
-    read -a TARGET_ARCHS <<<${TRGA}
-  fi
-  
-
-  echo -e "choose package manager ${PACKAGE_MANAGERS[@]}:"
-  read PKG
-  if [[ ! -z ${PKG} ]];then
-    read -a PACKAGE_MANAGERS <<<${PKG}
-  fi
-  
-
-  echo -e "choose image type ${IMAGE_RECIPE}:"
-  read IMGTYPE
-  if [[ ! -z ${IMGTYPE} ]];then
-    IMAGE_RECIPE=${IMGTYPE}
-  fi
-  
-
-  echo -e "\n\nSummary:"
-  echo "install dir set to ${INSTALL_DIR}"
-  echo "target set to ${TARGETS[@]}"
-  echo "target archs set to ${TARGET_ARCHS[@]}"
-  echo "package manager set to ${PACKAGE_MANAGERS}"
-  echo "image type set to ${IMAGE_RECIPE}"
-
-}
 
 
 #########################################################################################
