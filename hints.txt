@@ -1,0 +1,56 @@
+MACHINE - this indicates the target platform (board or emulator) for the build
+
+[daemonna@localhost build_poky1]$ ls ../poky/meta*/conf/machine/*.conf
+../poky/meta/conf/machine/qemuarm.conf     ../poky/meta-yocto-bsp/conf/machine/beagleboard.conf
+../poky/meta/conf/machine/qemumips64.conf  ../poky/meta-yocto-bsp/conf/machine/genericx86-64.conf
+../poky/meta/conf/machine/qemumips.conf    ../poky/meta-yocto-bsp/conf/machine/genericx86.conf
+../poky/meta/conf/machine/qemuppc.conf     ../poky/meta-yocto-bsp/conf/machine/mpc8315e-rdb.conf
+../poky/meta/conf/machine/qemux86-64.conf  ../poky/meta-yocto-bsp/conf/machine/routerstationpro.conf
+
+
+
+
+DISTRO - this indicates the base distribution for the build
+
+[daemonna@localhost build_poky1]$ ls ../poky/meta*/conf/distro/*.conf
+../poky/meta/conf/distro/defaultsetup.conf         ../poky/meta-yocto/conf/distro/poky.conf      ../poky/meta-yocto/conf/distro/poky-tiny.conf
+../poky/meta-yocto/conf/distro/poky-bleeding.conf  ../poky/meta-yocto/conf/distro/poky-lsb.conf
+
+
+
+
+IMAGES
+
+[daemonna@localhost build_poky1]$ ls ../poky/meta*/recipe*/images/*.bb
+../poky/meta-hob/recipes-core/images/hob-image.bb                 ../poky/meta/recipes-graphics/images/core-image-clutter.bb
+../poky/meta/recipes-core/images/build-appliance-image_8.0.bb     ../poky/meta/recipes-graphics/images/core-image-directfb.bb
+../poky/meta/recipes-core/images/core-image-base.bb               ../poky/meta/recipes-graphics/images/core-image-weston.bb
+../poky/meta/recipes-core/images/core-image-minimal.bb            ../poky/meta/recipes-graphics/images/core-image-x11.bb
+../poky/meta/recipes-core/images/core-image-minimal-dev.bb        ../poky/meta/recipes-qt/images/qt4e-demo-image.bb
+../poky/meta/recipes-core/images/core-image-minimal-initramfs.bb  ../poky/meta/recipes-rt/images/core-image-rt.bb
+../poky/meta/recipes-core/images/core-image-minimal-mtdutils.bb   ../poky/meta/recipes-rt/images/core-image-rt-sdk.bb
+../poky/meta/recipes-extended/images/core-image-basic.bb          ../poky/meta/recipes-sato/images/core-image-sato.bb
+../poky/meta/recipes-extended/images/core-image-lsb.bb            ../poky/meta/recipes-sato/images/core-image-sato-dev.bb
+../poky/meta/recipes-extended/images/core-image-lsb-dev.bb        ../poky/meta/recipes-sato/images/core-image-sato-sdk.bb
+../poky/meta/recipes-extended/images/core-image-lsb-sdk.bb        ../poky/meta-skeleton/recipes-multilib/images/core-image-multilib-example.bb
+
+
+
+IMAGE_EXTRA_FEATURES - adds any extra items to any images that are built
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+RECIPES
+
+ls meta*/recipe*/*/*.bb

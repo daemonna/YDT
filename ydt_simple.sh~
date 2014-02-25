@@ -46,7 +46,7 @@ YOCTO_REPO="http://downloads.yoctoproject.org/releases/yocto/yocto-${YOCTO_VERSI
 INSTALL_DIR="/opt/poky/1.5.1"  #default as adt installer
 
 
-declare -a DISTROS=($(ls ${INSTALL_DIR}/poky/meta*/conf/distro/*.conf| grep 'conf/distro/' | cut -d '/' -f 6 | cut -d '.' -f 1))
+declare -a DISTROS=($(ls ${INSTALL_DIR}/poky/meta*/conf/distro/*.conf| grep '../poky/meta-yocto/conf/distro/' | cut -d '/' -f 6 | cut -d '.' -f 1))
 declare -a MACHINES=($(ls ${INSTALL_DIR}/poky/meta*/conf/machine/*.conf| cut -d '/' -f 6 | cut -d '.' -f 1))
 declare -a IMAGES=($(ls ${INSTALL_DIR}/poky/meta*/recipe*/images/*.bb |cut -d '/' -f 6 | cut -d '.' -f 1))
 
