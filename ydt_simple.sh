@@ -103,8 +103,10 @@ collect_user_data() {
   # CPU THREADS setting, if user set more threads than CPU have, warning is issued and script exits
   echo -e "Your machine has ${CPU_THREADS} cores/thread. How many of them you want to use for building?"
   printf "[${CPU_THREADS}]:"
+
   read THR
-  echo "want to set ${THR} threads"
+  echo "want to set $THR threads"
+
   if [[ ! -z "${THR}" ]];then
     if [[ "${THR}" > "${CPU_THREADS}" ]];then
       echo -e "INVALID NUMBER! You try to assign ${THR} of ${CPU_THREADS} available!"
