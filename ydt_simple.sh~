@@ -105,7 +105,7 @@ collect_user_data() {
   printf "[${CPU_THREADS}]:"
   read THR
   echo "want to set ${THR} threads"
-  if [[ ! -z "${THR}" ]];then
+  if [[ -z "${THR}" ]];then
     if [[ "${THR}" > "${CPU_THREADS}" ]];then
       echo -e "INVALID NUMBER! You try to assign ${THR} of ${CPU_THREADS} available!"
       exit
