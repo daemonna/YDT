@@ -93,7 +93,7 @@ get_stable_branch() {
 build_branch() {
 
     echo -e "[build_branch] initialized"
-
+    cd ${INSTALL_DIR}
     # source directory to default 'build' dir
     source ${YOCTO_DISTRO}/oe-init-build-env
 
@@ -111,12 +111,15 @@ build_branch() {
 build_sdk() {
 
     echo -e "[build_sdk] initialized"    
-    
+    cd ${INSTALL_DIR}
+    ls
     # source directory to default 'build' dir
+    echo -e "source ${YOCTO_DISTRO}/oe-init-build-env"
     source ${YOCTO_DISTRO}/oe-init-build-env
 
     #TODO check if multiple machines can be in config
     # change MACHINE in conf/local.conf
+    echo -e "changing conf/local.conf"
     sed -i "s/MACHINE ??= \"qemux86\"/MACHINE ??= \"${MACHINES[@]}\"/g" conf/local.conf
 
     # build sdk

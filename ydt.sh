@@ -4,7 +4,7 @@
 # Author : peter.ducai@gmail.com 
 # Homepage : 
 # License : BSD http://en.wikipedia.org/wiki/BSD_license
-# Copyright (c) 2014, peter ducai
+# Copyright 2014, peter ducai
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -33,21 +33,11 @@
 # Purpose : Yocto development toolkit installer
 # Usage : run without paramaters to see usage
 #
-#coding guidelines: http://google-styleguide.googlecode.com/svn/trunk/shell.xml                         
 
 
-
-
-
-
-####################################################################################################
-#                                                                                                  #
-# GLOBAL VALUES                                                                                    #
-####################################################################################################
-
-###################
-# TERMINAL COLORS #
-###################
+######################
+# terminal colors    #
+######################
 
 NONE='\033[00m'
 RED='\033[01;31m'
@@ -59,700 +49,294 @@ VIOLET='\033[35m'
 CYAN='\033[36m'
 GREY='\033[37m'
 
-############################
-# system values            #
-############################
-NOW=$(date +"%s-%d-%m-%Y")
+######################
+# default values     #
+######################
 
-################
-# HOST values  #
-################
+YOCTO_VERSION="1.5.1"
+YOCTO_DISTRO="poky"
+YOCTO_REPO="http://downloads.yoctoproject.org/releases/yocto/yocto-${YOCTO_VERSION}"
+INSTALL_DIR="/opt/poky/1.5.1"  #default as adt installer
+
+######################
+# HOST values        #
+######################
 
 HOST_ARCH=$(uname -m)
 HOST_OS=$(uname -o)
 HOST_KERNEL_VERSION=$(uname -r)
-HOST_DISTRO="N/A"
-HOST_PYTHON_VERSION=$(python -c 'import sys; print("%i" % (sys.hexversion<0x03000000))')
-HOST_INSTALL_QEMU="NO"
-HOST_INSTALL_NFS="NO"
-HOST_CPU_THREADS=$(cat /proc/cpuinfo|grep process|wc -l)
+CPU_THREADS=$(cat /proc/cpuinfo |grep processor|wc -l)
+declare -a DISTROS=()
+declare -a MACHINES=()
+declare -a IMAGES=()
+declare -a PACKAGE_MANAGERS=("rpm" "tar" "deb" "ipk")
 
-###################
-# target values   #
-###################
-declare -a TARGETS=("qemumips" "qemuppc" "qemux86" "qemux86-64" "genericx86" "genericx86-64" "beagleboard" "mpc8315e-rdb" "routerstationpro")
-declare -a TARGETS_EXTERNAL
-declare -a PACKAGE_MANAGERS=("rpm" "ipk" "tar" "deb")
-PACKAGE_MANAGER="ipk" #default package manager
 
-#######################
-# Global adt values   #
-#######################
-INSTALL_FOLDER="${HOME}/.ydt" #current location as default
-DOWNLOAD_FOLDER="${HOME}/.ydt/down" #The central download directory used by the build process to store downloads
-CONFIG_FOLDER="${HOME}/.ydt/configs"
-YOCTO_ADT_REPO="http://downloads.yoctoproject.org/releases/yocto/yocto-1.5.1/"
-LOG_FOLDER="${HOME}/.ydt/log"
-LOG="${LOG_FOLDER}/ydt_ng.log"
-HISTORY="${HOME}/.ydt/history"
-EXTERNAL_TARGETS_FOLDER="${HOME}/.ydt/external_targets"
-INTERACTIVE="N" #by default not interactive
-FULL_INSTALL="N"
+
+
+#########################################################################################
+#                                                                                       #
+# FUNCTIONS                                                                             #
+#########################################################################################
 
 ############################
-# YOCTO version            #
+# download STABLE branch   #
 ############################
-YOCTO_VERSION="1.5.1"
-YOCTO_DISTRO="poky"
+get_stable_branch() {
 
-
-
-
-
-####################################################################################################
-#                                                                                                  #
-# LOGGING FUNCTIONS                                                                                #
-####################################################################################################
-
-########################
-# logging functions    #
-########################
-adt_log_write() {
-  #echo "logging [$NOW] $1 [$2]"
-  echo "[$NOW] $1 [$2]" >> $LOG 
-}
-
-adt_history_write() {
-  #echo "history writes [$NOW] $1"
-  echo "[$NOW] $1" >> $HISTORY
+    cd ${INSTALL_DIR}/${YOCTO_DISTRO}
+    echo -e "downloading STABLE branch"
+    wget ${YOCTO_REPO}/poky-dora-10.0.1.tar.bz2
+    tar xvjf poky-dora-10.0.1.tar.bz2 
 }
 
 
 
+#############################
+# download CURRENT branch   #
+#############################
+get_current_branch() {
 
-
-
-
-####################################################################################################
-#                                                                                                  #
-# DISTRO RELATED FUNCTIONS                                                                         #
-####################################################################################################
-
-#########################################
-# find out type of linux distro of HOST #
-#########################################
-get_distro() {
-  
-  echo -e "checking for right Python version.."
-  if [ ${HOST_PYTHON_VERSION} -eq 0 ]; then
-    echo -e "${RED}[ERROR]${NONE} we require python version 2.x"
-    exit
-  else 
-    echo -e "${GREEN}[OK]${NONE} python version is 2.x\n"
-  fi
-
-  if [ -f /etc/redhat-release ] ; then
-    HOST_DISTRO='redhat'
-  elif [ -f /etc/SuSE-release ] ; then
-    HOST_DISTRO="suse"
-  elif [ -f /etc/debian_version ] ; then
-    HOST_DISTRO="debian" # including Ubuntu!
-  fi
-}
-
-
-
-################################################
-# install required software for current distro #
-################################################
-install_essentials() {
-  case "${HOST_DISTRO}" in
-  redhat) yum install gawk make wget tar bzip2 gzip python unzip perl patch \
-     diffutils diffstat git cpp gcc gcc-c++ glibc-devel texinfo chrpath \
-     ccache perl-Data-Dumper perl-Text-ParseWords
-    ;;
-  suse) zypper install python gcc gcc-c++ git chrpath make wget python-xml \
-     diffstat texinfo python-curses patch
-    ;;
-  debian) apt-get install gawk wget git-core diffstat unzip texinfo gcc-multilib \
-     build-essential chrpath
-    ;;
-  *) echo "DISTRO error" 
-    exit 1
-    ;;
-  esac
-}
-
-
-######################################
-# install additional graphics libs   #
-######################################
-install_graphical_extras() {
-  case "${HOST_DISTRO}" in
-  redhat) yum install SDL-devel xterm
-    ;;
-  suse) zypper install libSDL-devel xterm
-    ;;
-  debian) apt-get install libsdl1.2-dev xterm
-    ;;
-  *) echo "DISTRO error"
-    exit 1
-    ;;
-  esac
-}
-
-
-#####################################
-# install documentation             #
-#####################################
-install_documentation() {
-  case "${HOST_DISTRO}" in
-  redhat) yum install make docbook-style-dsssl docbook-style-xsl \
-     docbook-dtds docbook-utils fop libxslt dblatex xmlto
-    ;;
-  suse) zypper install make fop xsltproc dblatex xmlto
-    ;;
-  debian) apt-get install make xsltproc docbook-utils fop dblatex xmlto
-    ;;
-  *) echo "DISTRO error"
-    exit 1
-    ;;
-  esac
-}
-
-
-########################
-# install ADT extras   #
-########################
-install_adt_extras() {
-  case "${HOST_DISTRO}" in
-  redhat) yum install autoconf automake libtool glib2-devel
-    ;;
-  suse) zypper install autoconf automake libtool glib2-devel
-    ;;
-  debian) apt-get install autoconf automake libtool libglib2.0-dev
-    ;;
-  *) echo "DISTRO error"
-    exit 1
-    ;;
-  esac
-}
-
-###############################
-#  install qemu (default NO)  #
-###############################
-install_qemu() {
-  if [[ "$HOST_INSTALL_QEMU" == "Y" ]];then
-    case "${HOST_DISTRO}" in
-    redhat) yum install autoconf automake libtool glib2-devel
-      ;;
-    suse) zypper install autoconf automake libtool glib2-devel
-      ;;
-    debian) apt-get install autoconf automake libtool libglib2.0-dev
-      ;;
-    *) echo "DISTRO error"
-      exit 1
-      ;;
-    esac
-  else
-    echo -e "skipping installation of Qemu"
-  fi
-
-}
-
-########################
-# install NFS          #
-########################
-install_nfs() {
-  case "${HOST_DISTRO}" in
-  redhat) yum install autoconf automake libtool glib2-devel
-    ;;
-  suse) zypper install autoconf automake libtool glib2-devel
-    ;;
-  debian) apt-get install autoconf automake libtool libglib2.0-dev
-    ;;
-  *) echo "DISTRO error"
-    exit 1
-    ;;
-  esac
-}
-
-
-
-
-
-
-####################################################################################################
-#                                                                                                  #
-# INITIAL CHECKS, SELF-HEALING FEATURES, BACKUPS                                                   #                                          #################################################################################################### 
-
-##############################################
-# prepare essential folders and config files #
-##############################################                                                                   
-prepare_essentials() {
-  echo -e "\ninitializing CHECKs"
-  echo ""
-  printf "checking for user rights..   "
-##########################
-# check if user is root  #
-##########################
-  if [ $(id -u) == "0" ]; then
-    echo -e "${RED}"
-    echo -e "#######################################################"
-    echo -e "# WARNING!!! running script as ROOT USER              #"
-    echo -e "# Are you sure you want to run this script as root?   #"
-    echo -e "# User access to ROOT's files can be limited!!!       #"
-    echo -e "#######################################################"
-    echo -e "${NONE}[Y/n]"
-    read USER_INPUT
-    if [[ "${USER_INPUT}" == "Y" ]];then
-      printf "[OK]"
+    echo -e "downloading CURRENT branch"
+    if [[ -d ${INSTALL_DIR}/${YOCTO_DISTRO} ]];then
+        echo "folder ${INSTALL_DIR}/${YOCTO_DISTRO} already exist!"
+        cd ${INSTALL_DIR}/${YOCTO_DISTRO}
+        
+        # if .git exist, then we got working CURRENT branch
+        if [[ -d ${INSTALL_DIR}/${YOCTO_DISTRO}/.git ]];then
+            echo -e "updating with git."
+            git pull
+        else
+            echo -e "YOCTO folder already exist but it's not GIT repository. Please delete it and rerun installer."
+            exit
+        fi
+        echo "ex"
     else
-      echo "exiting"
-      exit
+        cd ${INSTALL_DIR}
+        git clone git://git.yoctoproject.org/${YOCTO_DISTRO}
     fi
-  else
-    echo -e "running as as ${GREEN}${USER}${NONE}.. OK"
-  fi
-
-
-###############################
-# check for top .ydt folder   #
-###############################
-  echo -e "checking for .ydt folder..."
-  if [[ -d $HOME/.ydt ]];then
-    echo -e "you're running YDT installer for first time as ${GREEN}${USER}${NONE}"
-  else
-    echo -e "no .ydt folder... creating in $HOME/.ydt ."
-    mkdir $HOME/.ydt
-  fi
-
-########################
-# check log file       #
-########################
-  if [[ -d $LOG_FOLDER ]];then
-    echo "$LOG_FOLDER exists.. OK"
-    adt_log_write "                               " ""
-    adt_log_write "installer run by $USER" "INFO"
-  else
-    echo "$LOG_FOLDER not found.. creating one"
-    mkdir $LOG_FOLDER
-    touch ${LOG_FOLDER}/ydt_ng.log
-    echo "#created on ${NOW}" >> ${LOG_FOLDER}/ydt_ng.log
-    adt_log_write "                               " "new entry"
-    adt_log_write "FIRST INITIALIZATION, run by $USER" "INFO"
-    adt_log_write "log file missing.. recreated in ${LOG_FOLDER}" "WARNING"
-  fi
-
-
-####################### 
-# check CONFIG files  #
-#######################
-  if [[ -d $CONFIG_FOLDER ]];then
-    echo "config found... OK"
-  else
-    echo "missing config directory... creating default one"
-    mkdir $CONFIG_FOLDER
-    echo "creating default config file"
-    touch ${CONFIG_FOLDER}/default.config
-    echo "writing default parameters into config"
-    echo "#autogenerated default config" >> ${CONFIG_FOLDER}/default.config
-    echo "# logged on [$NOW]"
-    echo -e "--interactive" >> ${CONFIG_FOLDER}/default.config
-    adt_log_write "config file missing.. recreated in ${CONFIG_FOLDER}" "WARNING"
-  fi
-
-#######################
-# check HISTORY file  #
-#######################
-  if [[ -f ${HISTORY} ]];then
-    echo "history found at ${HISTORY}... OK"
-  else 
-    echo "history not found... creating new one"
-    touch ${HISTORY}
-    adt_log_write "history file missing.. recreated in ${HISTORY}" "WARNING"
-    adt_history_write "history file missing.. recreated in ${HISTORY}"
-  fi
-}
-
-
-
-
-
-
-####################################################################################################
-#                                                                                                  #
-# COMMON FUNCTIONS                                                                                 #
-####################################################################################################
-
-###################################
-#  list possible Yocto targets    #
-###################################
-list_targets() {
-  echo -e "available targets:"
-  echo -e "${GREEN}qemumips qemuppc qemux86 qemux86-64 genericx86 genericx86-64 beagleboard mpc8315e-rdb routerstationpro${NONE}"
-}
-
-################################################################################ 
-# define target(s) separated by space, to see values use list_targets switch.  #
-################################################################################ 
-set_targets() {
-  if [[ "${INTERACTIVE}" == "Y" ]];then
-    echo -e "your HOST is ${GREEN}${HOST_ARCH}${NONE}, what targets you want to install?"
-    list_targets
-    echo -e "${NONE}[target names]"
-    read TRGT
-    # TODO validate target
-  else
-    echo "setting targets to $TARGETS[@]"    
-  fi
 }
 
 #############################
-# list available rootfs     #
+# build full Yocto          #
 #############################
-list_rootfs() {
-  echo -e "available rootfs:"
-  echo -e "${GREEN}minimal minimal-dev sato sato-dev sato-sdk lsb lsb-dev lsb-sdk${NONE}"
+build_branch() {
+
+    echo -e "[build_branch] initialized"
+    cd ${INSTALL_DIR}
+    # source directory to default 'build' dir
+    source ${YOCTO_DISTRO}/oe-init-build-env
+
+    #TODO check if multiple machines can be in config
+    # change MACHINE in conf/local.conf
+    sed -i "s/MACHINE ??= \"qemux86\"/MACHINE ??= \"${MACHINES[@]}\"/g" conf/local.conf
+
+    #run bitbake and build
+    echo -e "downloading IMAGES"
+    bitbake -c fetchall ${IMAGES[@]}  #first just fetch all packages
+    echo -e "RUNNING BITBAKE..................."
+    bitbake ${IMAGES[@]}  #then build YOCTO
 }
 
 
-###############################
-# download specific toolchain #
-###############################
-download_toolchain() {
-  echo "DOWNLOADING http://downloads.yoctoproject.org/releases/yocto/yocto-${YOCTO_VERSION}/toolchain/${YOCTO_DISTRO}-eglibc-${HOST_ARCH}-core-image-sato-${TARGET}-toolchain-1.5.1.sh"
-  wget -O $DOWNLOAD_FOLDER/${YOCTO_DISTRO}-eglibc-${HOST_ARCH}-core-image-sato-${TARGET}-toolchain-${YOCTO_VERSION}.sh http://downloads.yoctoproject.org/releases/yocto/yocto-${YOCTO_VERSION}/toolchain/${YOCTO_DISTRO}-eglibc-${HOST_ARCH}-core-image-sato-${TARGET}-toolchain-${YOCTO_VERSION}.sh   
+#############################
+# build only toolchain      #
+#############################
+build_sdk() {
+
+    echo -e "[build_sdk] initialized"    
+    cd ${INSTALL_DIR}
+    ls
+    # source directory to default 'build' dir
+    echo -e "source ${YOCTO_DISTRO}/oe-init-build-env"
+    source ${YOCTO_DISTRO}/oe-init-build-env
+
+    #TODO check if multiple machines can be in config
+    # change MACHINE in conf/local.conf
+    echo -e "changing conf/local.conf"
+    sed -i "s/MACHINE ??= \"qemux86\"/MACHINE ??= \"${MACHINES[@]}\"/g" conf/local.conf
+
+    # build sdk
+    echo -e "RUNNING BITBAKE..................."
+    bitbake -c do_populatesdk ${IMAGES[@]}  
 }
 
 
-run_interactive() {
-  echo -e "welcome to interactive mode\nthese are current parameters"
-  print_parameters
-  echo -e "${GREEN}specify install folder${NONE}"
-}
+############################################################
+# collect info from user about distro, machine and image   #
+############################################################
+collect_yocto_details() {
 
+    echo -e "processing Yocto details....................................."
+        
+    DISTROS=($(ls ${INSTALL_DIR}/${YOCTO_DISTRO}/meta*/conf/distro/*.conf| grep 'conf/distro/' | cut -d '/' -f 9 | cut -d '.' -f 1))
+    MACHINES=($(ls ${INSTALL_DIR}/${YOCTO_DISTRO}/meta*/conf/machine/*.conf| cut -d '/' -f 9 | cut -d '.' -f 1))
+    IMAGES=($(ls ${INSTALL_DIR}/${YOCTO_DISTRO}/meta*/recipe*/images/*.bb |cut -d '/' -f 9 | cut -d '.' -f 1))
+    
+    echo -e "collecting user data........................................."
+    echo -e "............................................................."
 
-run_installer() {
-  echo "running INSTALLER"
-  adt_log_write "running INSTALLER" "INFO"
-  adt_history_write "running INSTALLER"
+    # get info about DISTRO
+    echo -e "Which DISTRO you want to use?"
+    echo -e "[${DISTROS[@]}]:"
 
-  if [[ "${INTERACTIVE}" == "Y" ]];then
-    adt_log_write "running interactive mode.. collecting user input" "INFO"
-    adt_history_write "running interactive mode.. collecting user input"
-    run_interactive
-  else
-    adt_log_write "running non-interactive mode" "INFO"
-    adt_history_write "running non-interactive mode"
-  fi
+    read DST  
 
-  echo -e "${GREEN}running installation..${NONE}"
-  adt_log_write "running installation with following parameters:" "INFO"
-  adt_log_write "params" "INFO"
-  adt_history_write "running installation with following parameters:"
-  adt_history_write "params"
+    if [[ -z "${DST}" ]];then
+        #echo "using orig. value: ${DISTROS[@]}"
+        echo "."
+    else
+        DISTROS="${DST}"        
+    fi
+    echo "using ${DISTROS[@]}"
+    echo -e "............................................................."
+    
+    
+    # get info about MACHINE
+    echo -e "Which MACHINE you want to use?"
+    echo -e "[${MACHINES[@]}]:"
 
+    read MCH  
 
+    if [[ -z "${MCH}" ]];then
+        #echo "using orig. value: ${MACHINES[@]}"
+        echo "."
+    else
+        MACHINES="${MCH}"        
+    fi
+    echo "using ${MACHINES[@]}"
+    echo -e "............................................................."
+    
+    
+    # get info about MACHINE
+    echo -e "Which IMAGE you want to use?"
+    echo -e "[${IMAGES[@]}]:"
 
+    read IMG  
 
-# END OF INSTALLATION
-  adt_log_write "end of install" "INFO"
-  adt_history_write "end of install"
-}
-
-
-#TODO
-build_full_distro() {
-  echo "The build process using Sato currently consumes about 50GB of disk space. To allow for variations in the build process and for future package expansion, we recommend having at least 100GB of free disk space."
-
-
-  wget http://downloads.yoctoproject.org/releases/yocto/yocto-1.5.1/poky-dora-10.0.1.tar.bz2
-#OR
-  git clone git://git.yoctoproject.org/poky
-
-  tar xjf poky-dora-10.0.1.tar.bz2
-  cd poky-dora-10.0.1
-
-#From the parent directory your Source Directory, initialize your environment and provide a meaningful Build Directory name:
-
-     #$ source poky/oe-init-build-env mybuilds
-
-  source oe-init-build-env
-
-#Initializing the build environment creates a conf/local.conf configuration file in the Build Directory. You need to manually edit this file to specify the machine you are building and to optimize your build time. Here are the minimal changes to make:
-
-#     BB_NUMBER_THREADS = "8"
-#     PARALLEL_MAKE = "-j 8"
-#     MACHINE ?= "beagleboard"
-            
-#Briefly, set BB_NUMBER_THREADS and PARALLEL_MAKE to twice your host processor's number of cores.
-
-#By default, the OpenEmbedded build system uses the RPM package manager. 
-
-  bitbake -k core-image-sato
-#OR
-  bitbake core-image-minimal
-
-  runqemu qemux86
-}
-
-install_toolchain() {
-#You can download a tarball installer, which includes the pre-built toolchain, the runqemu script, and support files from the appropriate directory under http://downloads.yoctoproject.org/releases/yocto/yocto-1.5.1/toolchain/. Toolchains are available for 32-bit and 64-bit x86 development systems from the i686 and x86_64 directories, respectively. The toolchains the Yocto Project provides are based off the core-image-sato image and contain libraries appropriate for developing against that image. Each type of development system supports five or more target architectures.
-
-#The names of the tarball installer scripts are such that a string representing the host system appears first in the filename and then is immediately followed by a string that represents the target architecture.
-
-     #poky-eglibc-<host_system>-<image_type>-<arch>-toolchain-<release_version>.sh
-
-     #Where:
-         #<host_system> is a string representing your development system:
-
-                    #i686 or x86_64.
-
-         #<image_type> is a string representing the image you wish to
-                #develop a Software Development Toolkit (SDK) for use against.
-                #The Yocto Project builds toolchain installers using the
-                #following BitBake command:
-
-                    #bitbake core-image-sato -c do_populatesdk core-image-sato
-
-         #<arch> is a string representing the tuned target architecture:
-
-                    #i586, x86_64, powerpc, mips, armv7a or armv5te
-
-         #<release_version> is a string representing the release number of the
-                #Yocto Project:
-
-                    #1.5.1, 1.5.1+snapshot
-            
-#F#or example, the following toolchain installer is for a 64-bit development host system and a i586-tuned target architecture based off the SDK for core-image-sato:
-
-     #poky-eglibc-x86_64-core-image-sato-i586-toolchain-1.5.1.sh
-                
-#Toolchains are self-contained and by default are installed into /opt/poky. However, when you run the toolchain installer, you can choose an installation directory.
-
+    if [[ -z "${IMG}" ]];then
+        #echo "using orig. value: ${IMAGES[@]}"
+        echo "."
+    else
+        IMAGES="${IMG}"        
+    fi
+    echo "using ${IMAGES[@]}"
+    echo -e "............................................................."
+    
+    echo -e "END OF PROCESSING"
 }
 
 
 
+############################
+# collect info from user   #
+############################
+collect_user_data() {
 
-####################################################################################################
-#                                                                                                  #
-# INFO                                                                                             #
-####################################################################################################
+    echo -e "collecting user data........................................."
+    echo -e "............................................................."
 
-##################################
-# print history of installations #
-##################################
-show_history() {
-  echo -e "\nHISTORY.......................\n"
-  cat $HISTORY 
-}
+    # CPU THREADS setting, if user set more threads than CPU have, warning is issued and script exits
+    echo -e "Your machine has ${CPU_THREADS} cores/thread. How many of them you want to use for building?"
+    printf "[${CPU_THREADS}]:"
 
-list_configs() {
-  echo -e "\nFollowing configs were found.."
-  ls $HOME/.ydt/configs/
-}
+    read THR  
 
-print_parameters() {
-  get_distro
-  echo -e "@${NOW}"
-  echo -e "- ${YELLOW}HOST PARAMETERS ${NONE}------------------------------------"
+    if [[ -z "${THR}" ]];then
+        #echo "using orig. value: ${CPU_THREADS}"
+        echo "."
+    else
+        #echo "want to set $THR threads"
+        if [[ $((${THR})) > $((${CPU_THREADS})) ]];then
+            echo -e "INVALID NUMBER! You try to assign ${THR} of ${CPU_THREADS} available!"
+            exit
+        fi
+        CPU_THREADS="${THR}"        
+    fi
+    echo "using ${CPU_THREADS}"
+    echo -e "............................................................."
 
-  echo -e "  architecture:     ${GREEN}${HOST_ARCH}${NONE}"
-  echo -e "  operating system: ${GREEN}${HOST_OS}${NONE}"
-  echo -e "  kernel version:   ${GREEN}${HOST_KERNEL_VERSION}${NONE}"
-  echo -e "  distribution:     ${GREEN}${HOST_DISTRO}${NONE}"
-  echo -e "  CPU threads:      ${GREEN}${HOST_CPU_THREADS}${NONE}"
-  echo -e "------------------------------------------------------"
 
-  echo -e "- ${YELLOW}DISTRO PARAMETERS ${NONE}----------------------------------"
-  echo -e "  distro:           ${GREEN}${YOCTO_DISTRO}${NONE}"
-  echo -e "  version:          ${GREEN}${YOCTO_VERSION}${NONE}"
-  echo -e "------------------------------------------------------"
+    # path where Yocto will be installed
+    echo -e "Where you'd like to install Yocto or it's tools?"
+    printf "[${INSTALL_DIR}]:"
 
-  echo -e "- ${YELLOW}TARGET PARAMETERS ${NONE}----------------------------------"
-  echo -e "  targets:          ${GREEN}${TARGETS[@]}${NONE}"
-  echo -e "  external targets: ${GREEN}${TARGETS_EXTERNAL[@]}${NONE}"
-  echo -e "  package managers: ${GREEN}${PACKAGE_MANAGERS[@]}${NONE}"
-  echo -e "------------------------------------------------------"
+    read INSTD  
+
+    if [[ -z "${INSTD}" ]];then
+        #echo "using orig. value: ${INSTALL_DIR}"
+        echo "."
+    else
+        INSTALL_DIR="${INSTD}"        
+    fi
+    echo "using ${INSTALL_DIR}"
+    mkdir ${INSTALL_DIR}
+    echo -e "............................................................."
+    
+    
+    
+    # choice between cutting-edge and stable
+    echo -e "Do you want to use CURRENT (git) unstable or rather STABLE (wget) version?"
+    printf "[CURRENT]:"
+
+    read CUST  
+
+    if [[ -z "${CUST}" ]];then
+        #echo "using orig. value: ${INSTALL_DIR}"
+        echo "."
+    else
+        INSTALL_DIR="${INSTD}"        
+    fi
+    
+    if [[ -z "${CUST}" ]];then
+        get_current_branch
+    else
+        echo "not empty: ${CUST}"
+        if [[ ${CUST} == "STABLE" ]];then
+            get_stable_branch
+        else
+            echo "wrong choice"
+        fi
+    fi
   
-  echo -e "- ${YELLOW}INSTALL PARAMETERS ${NONE}----------------------------------"
-  echo -e "  install folder:   ${GREEN}${INSTALL_FOLDER}${NONE}"
-  echo -e "  download folder:  ${GREEN}${DOWNLOAD_FOLDER}${NONE}"
-  echo -e "  ADT repo:         ${GREEN}${YOCTO_ADT_REPO}${NONE}"
-  echo -e "  log file:         ${GREEN}${LOG}${NONE}"
-  echo -e "  history file:     ${GREEN}${HISTORY}${NONE}"
-  echo -e "  install NFS:      ${GREEN}${HOST_INSTALL_NFS}${NONE}"
-  echo -e "  install Qemu:     ${GREEN}${HOST_INSTALL_QEMU}${NONE}"
-  echo -e "------------------------------------------------------"
+    echo -e "............................................................."
+}
+
+#######################################################
+# ask user if he wants full build or just toolchain   #
+#######################################################
+collect_build_info() {
+    
+    echo -e "collecting build details....................................."
+    echo -e "............................................................."
+
+    # get info about DISTRO
+    echo -e "Do you want to build full Yocto or toolchain only? (toolchain/full)"
+    echo -e "[toolchain]:"
+
+    read TLCH  
+
+    if [[ -z "${TLCH}" ]];then
+        build_sdk
+    else
+        build_branch     
+    fi
+    echo -e "............................................................."
+    echo -e "FINISH......................................................."
 }
 
 
 
-print_usage() {
-  echo "running under BASH ${BASH_VERSION}"
-  print_parameters
-  echo -e "\nUsage:\n"
-  echo -e "--interactive            [enter interactive mode where installer will ask for every parameter]"
-  echo -e "--list-parameters        [list all parameters]"
-  echo -e "--list-targets           [list all available targets]"
-  echo -e "--set-targets          = ${GREEN}qemuarm qemuppc qemux86 qemux86-64 genericx86 genericx86-64 beagleboard mpc8315e-rdb routerstationpro${NONE}"
-  echo -e "                         [external targets] ${GREEN}${EXT_TARGETS}${NONE}"
-  echo -e "                         [set targets, for more than one, separate with space]"
-  echo -e "--list-rootfs            [list rootfs variables]"
-  echo -e "--set-rootfs           = ${GREEN}minimal minimal-dev sato sato-dev sato-sdk lsb lsb-dev lsb-sdk${NONE}"
-  echo -e "                         [external rootfs]  ${GREEN}${EXT_ROOTFS}${NONE}"
-  echo -e "--set-package-system   = ${GREEN}ipk tar deb rpm${NONE}"
-  echo -e "                         [set packaging system for YOCTO]"
-  echo -e "--install-qemu           [install Qemu package for simulation of other architectures] ROOT required!${NONE}"
-  echo -e "--install_nfs            [install NFS package] ROOT required!${NONE}"
-  echo -e "--install-path           ${GREEN}PATH${NONE}"
-  echo -e "                         [specify installation path]${NONE}"
-  echo -e "--show-history           [show installation history]${NONE}"
-  echo -e "--load-from-config     = <path_to_config>${NONE}"
-  echo -e "                         [load values from specified config file]${NONE}"
-  echo -e "--save-to-config       = <path_to_config>${NONE}"
-  echo -e "                         [save values to specified config file]${NONE}"
-  echo -e "--list-configs           [list available config files]"
-  echo -e "--set-external-targets-path = <path_to_folder>"
-  echo -e "--set-download-folder  = <path>"
-  echo -e "--clean-download-folder  [to clean all downloads]"
-  echo -e "--view-log               [view log file content]"
-  echo -e "--clear-log              [delete log file]"
-  echo -e "--install-full-yocto     []"
-  echo -e "--install-toolchain-only []"
-}
+#########################################################################################
+#                                                                                       #
+# MAIN FUNCTION                                                                         #
+#########################################################################################
 
+echo -e "welcom to simple YOCTO installer"
+echo -e "##################################################"
 
-print_banner() {
-  echo -e "\n \/ _  __|_ _                           "
-  echo -e " / (_)(_ | (_) development toolkit      \n"
-}
+collect_user_data
+collect_yocto_details
+collect_build_info
 
-
-
-
-
-
-
-
-
-####################################################################################################
-#                                                                                                  #
-# MAIN FUNCTION                                                                                    #
-####################################################################################################
-
-print_banner
-
-# if no parameters, run interactive
-if [[ -z "$1" ]]; then
-  echo -e "${RED}###################################################################${NONE}"
-  echo -e "${RED}# Are you sure you want to run installer with default parameters? #${NONE}"
-  echo -e "${RED}###################################################################${NONE}"
-  read CONTINUE
-  if [[ "${CONTINUE}" != "Y" ]];then
-    print_usage
-    exit
-  else 
-    echo "skipping to installer"
-  fi
-fi
-
-
-#######################
-# process parameters  #
-#######################
-for i in "$@"
-do
-case "$i" in
-  --install-folder=*) INSTALL_FOLDER="${i#*=}"
-    LOG_FOLDER="${INSTALL_FOLDER}/log"
-    echo -e "INSTALL FOLDER set to ${INSTALL_FOLDER}"   
-    ;;
-  --list-parameters) print_parameters # to list all parameters
-    exit
-    ;;
-  --list-targets) list_targets 
-    exit 
-    ;;
-  --set-targets=*) TARGETS=("${i#*=}") # define target(s) separated by space, to see values use list_targets switch. Example "arm x86"
-    print_parameters
-    ;;
-  --list-rootfs) list_rootfs  
-    exit
-    ;;
-  --set-rootfs=*) ROOTFS="${i#*=}"
-    ;;
-  --set-package-system=*) PACKAGE_MANAGER="${i#*=}"  # define packaging system, possible values: rpm, ipk, tar, deb
-    ;;
-  --install-path) INSTALL_FOLDER="${i#*=}" # path to install dir
-    ;;
-  --show-history) show_history
-    ;;
-  --install-qemu=*) HOST_INSTALL_QEMU="${i#*=}"
-    install_qemu
-    ;;
-  --install-nfs) HOST_INSTALL_NFS="${i#*=}"
-    install_nfs
-    ;;
-  --save-to-config) echo "something" # save values to config
-    ;;
-  --load-from-config) echo "something"
-    ;;
-  --list-configs) list_configs
-    exit
-    ;;
-  --interactive)
-    INTERACTIVE="Y"
-    ;;
-  --set-download-folder) DOWNLOAD_FOLDER="${i#*=}"
-    echo -e "download folder set to ${DOWNLOAD_FOLDER}"
-    ;;
-  --clean-download-folder) echo -e "cleaning download folder ${DOWNLOAD_FOLDER}"
-    rm -rf ${DOWNLOAD_FOLDER}/*
-    ;;
-  --set-external-targets-path=*) EXTERNAL_TARGETS_FOLDER="${i#*=}"
-    ;;
-  --view-log) if [[ -d $LOG_FOLDER ]];then
-        cat $LOG_FOLDER/ydt_ng.log
-      else
-        echo -e "${RED}log file not found.. re-run installer to see default log${NONE}"
-      fi
-      exit
-    ;;
-  --clear-log) rm -rf ${LOG_FOLDER}/ydt_ng.log
-    echo "log file deleted at ${NOW} by ${USER}"    
-    LOG_CLEARED="Y"
-    ;;
-  --install-full-yocto) FULL_INSTALL="Y"
-    ;;
-  --install-toolchain-only) FULL_INSTALL="N"
-    ;;
-  *) echo "invalid option!!!" 
-    print_usage
-    ;;
-esac
-done
-
-LOG_FOLDER="${INSTALL_FOLDER}/log"
-prepare_essentials
-
-if [[ "${LOG_CLEARED}" == "Y" ]];then
-  echo "log file deleted at ${NOW} by ${USER}" > ${LOG_FOLDER}/ydt_ng.log
-  exit
-fi
-
-adt_log_write "INITIALIZATION finished" "INFO"
-adt_history_write "INITIALIZATION finished"
-
-run_installer
-
-############################
-# continue with params set #
-############################
-
-##############################
-# END OF INSTALER            #
-##############################
 exit $?
