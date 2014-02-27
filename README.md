@@ -3,14 +3,10 @@ YDT
 **YOCTO development toolkit**
 rewrite of Yocto's ADT
 
-2 scripts:
+- ydt.sh  WARNING! just first 0.1 version so missing many features
 
-- ydt_simple.sh (very simple YOCTO and toolchain downloader)
-- ydt.sh (full YDT) WARNING! STILL NOT FULLY FUNCTIONAL
-
-new features:
+features TODO:
 
 - checklist (dependencies, user rights, missing config files)
 - load/save custom configs
 - installer history
-- new interactive mode
