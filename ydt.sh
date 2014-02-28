@@ -623,47 +623,47 @@ collect_build_info() {
 # print history of installations #
 ##################################
 show_history() {
-  echo -e "\nHISTORY.......................\n"
-  cat $HISTORY 
+    echo -e "\nHISTORY.......................\n"
+    cat $HISTORY 
 }
 
 list_configs() {
-  echo -e "\nFollowing configs were found.."
-  ls $HOME/.ydt/configs/
+    echo -e "\nFollowing configs were found.."
+    ls $HOME/.ydt/configs/
 }
 
 print_parameters() {
-  get_distro
-  echo -e "@${NOW}"
-  echo -e "- ${YELLOW}HOST PARAMETERS ${NONE}------------------------------------"
+    get_distro
+    echo -e "@${NOW}"
+    echo -e "- ${YELLOW}HOST PARAMETERS ${NONE}------------------------------------"
 
-  echo -e "  architecture:     ${GREEN}${HOST_ARCH}${NONE}"
-  echo -e "  operating system: ${GREEN}${HOST_OS}${NONE}"
-  echo -e "  kernel version:   ${GREEN}${HOST_KERNEL_VERSION}${NONE}"
-  echo -e "  distribution:     ${GREEN}${HOST_DISTRO}${NONE}"
-  echo -e "  CPU threads:      ${GREEN}${HOST_CPU_THREADS}${NONE}"
-  echo -e "------------------------------------------------------"
+    echo -e "  architecture:     ${GREEN}${HOST_ARCH}${NONE}"
+    echo -e "  operating system: ${GREEN}${HOST_OS}${NONE}"
+    echo -e "  kernel version:   ${GREEN}${HOST_KERNEL_VERSION}${NONE}"
+    echo -e "  distribution:     ${GREEN}${HOST_DISTRO}${NONE}"
+    echo -e "  CPU threads:      ${GREEN}${HOST_CPU_THREADS}${NONE}"
+    echo -e "------------------------------------------------------"
 
-  echo -e "- ${YELLOW}DISTRO PARAMETERS ${NONE}----------------------------------"
-  echo -e "  distro:           ${GREEN}${YOCTO_DISTRO}${NONE}"
-  echo -e "  version:          ${GREEN}${YOCTO_VERSION}${NONE}"
-  echo -e "------------------------------------------------------"
+    echo -e "- ${YELLOW}DISTRO PARAMETERS ${NONE}----------------------------------"
+    echo -e "  distro:           ${GREEN}${YOCTO_DISTRO}${NONE}"
+    echo -e "  version:          ${GREEN}${YOCTO_VERSION}${NONE}"
+    echo -e "------------------------------------------------------"
 
-  echo -e "- ${YELLOW}TARGET PARAMETERS ${NONE}----------------------------------"
-  echo -e "  targets:          ${GREEN}${TARGETS[@]}${NONE}"
-  echo -e "  external targets: ${GREEN}${TARGETS_EXTERNAL[@]}${NONE}"
-  echo -e "  package managers: ${GREEN}${PACKAGE_MANAGERS[@]}${NONE}"
-  echo -e "------------------------------------------------------"
+    echo -e "- ${YELLOW}TARGET PARAMETERS ${NONE}----------------------------------"
+    echo -e "  targets:          ${GREEN}${TARGETS[@]}${NONE}"
+    echo -e "  external targets: ${GREEN}${TARGETS_EXTERNAL[@]}${NONE}"
+    echo -e "  package managers: ${GREEN}${PACKAGE_MANAGERS[@]}${NONE}"
+    echo -e "------------------------------------------------------"
   
-  echo -e "- ${YELLOW}INSTALL PARAMETERS ${NONE}----------------------------------"
-  echo -e "  install folder:   ${GREEN}${INSTALL_FOLDER}${NONE}"
-  echo -e "  download folder:  ${GREEN}${DOWNLOAD_FOLDER}${NONE}"
-  echo -e "  ADT repo:         ${GREEN}${YOCTO_ADT_REPO}${NONE}"
-  echo -e "  log file:         ${GREEN}${LOG}${NONE}"
-  echo -e "  history file:     ${GREEN}${HISTORY}${NONE}"
-  echo -e "  install NFS:      ${GREEN}${HOST_INSTALL_NFS}${NONE}"
-  echo -e "  install Qemu:     ${GREEN}${HOST_INSTALL_QEMU}${NONE}"
-  echo -e "------------------------------------------------------"
+    echo -e "- ${YELLOW}INSTALL PARAMETERS ${NONE}----------------------------------"
+    echo -e "  install folder:   ${GREEN}${INSTALL_FOLDER}${NONE}"
+    echo -e "  download folder:  ${GREEN}${DOWNLOAD_FOLDER}${NONE}"
+    echo -e "  ADT repo:         ${GREEN}${YOCTO_ADT_REPO}${NONE}"
+    echo -e "  log file:         ${GREEN}${LOG}${NONE}"
+    echo -e "  history file:     ${GREEN}${HISTORY}${NONE}"
+    echo -e "  install NFS:      ${GREEN}${HOST_INSTALL_NFS}${NONE}"
+    echo -e "  install Qemu:     ${GREEN}${HOST_INSTALL_QEMU}${NONE}"
+    echo -e "------------------------------------------------------"
 }
 
 
@@ -706,8 +706,8 @@ print_usage() {
 
 
 print_banner() {
-  echo -e "\n \/ _  __|_ _                           "
-  echo -e " / (_)(_ | (_) development toolkit      \n"
+    echo -e "\n \/ _  __|_ _                           "
+    echo -e " / (_)(_ | (_) development toolkit      \n"
 }
 
 
