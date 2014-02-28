@@ -726,7 +726,7 @@ echo -e "############################################################"
 
 #TODO if no params, run interactive
 
-if [[ $# -lt 1 ]];then
+if [[ $# > 1 ]];then
     collect_user_data
     collect_yocto_details
     collect_build_info
