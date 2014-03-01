@@ -61,7 +61,7 @@ INSTALL_DIR="/opt/poky/1.5.1"  #default as adt installer
 YDT_DIR="${HOME}/.ydt"
 LOG_FOLDER="${YDT_DIR}/log"
 LOG="${LOG_FOLDER}/ydt_ng.log"
-HISTORY="~/.ydt/history"
+HISTORY="${YDT_DIR}/history"
 CONFIG_FOLDER="${HOME}/.ydt/configs"
 
 ######################
