@@ -61,7 +61,7 @@ INSTALL_DIR="/opt/poky/1.5.1"  #default as adt installer
 YDT_DIR="${HOME}/.ydt"
 LOG_FOLDER="${YDT_DIR}/log"
 LOG="${LOG_FOLDER}/ydt_ng.log"
-HISTORY="~/.ydt/history"
+HISTORY="${YDT_DIR}/history"
 CONFIG_FOLDER="${HOME}/.ydt/configs"
 
 ######################
@@ -310,13 +310,13 @@ prepare_essentials() {
 ########################
 # check log file       #
 ########################
-  if [[ -d $LOG_FOLDER ]];then
-    echo "$LOG_FOLDER exists.. OK"
+  if [[ -d ${LOG_FOLDER} ]];then
+    echo "${LOG_FOLDER} exists.. OK"
     adt_log_write "                               " ""
     adt_log_write "installer run by $USER" "INFO"
   else
-    echo "$LOG_FOLDER not found.. creating one"
-    mkdir $LOG_FOLDER
+    echo "${LOG_FOLDER} not found.. creating one"
+    mkdir ${LOG_FOLDER}
     echo -e "created.."
     touch ${LOG_FOLDER}/ydt_ng.log
     echo "#created on ${NOW}" >> ${LOG_FOLDER}/ydt_ng.log
@@ -350,7 +350,7 @@ prepare_essentials() {
     echo "history found at ${HISTORY}... OK"
   else 
     echo "history not found... creating new one"
-    touch ${HISTORY}
+    echo "" > ${HISTORY}
     adt_log_write "history file missing.. recreated in ${HISTORY}" "WARNING"
     adt_history_write "history file missing.. recreated in ${HISTORY}"
   fi
