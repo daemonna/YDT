@@ -83,6 +83,10 @@ declare -a IMAGES=()
 declare -a PACKAGE_MANAGERS=("rpm" "tar" "deb" "ipk")
 
 
+#OTHER 
+CONFIG_TO_SAVE=""
+
+
 
 #########################################################################################
 #                                                                                       #
@@ -674,17 +678,17 @@ print_usage() {
     echo -e "\nUsage:\n"
     echo -e "--help                   [print help]"
     echo -e ""
-    echo -e "--install-qemu           [install Qemu package for simulation of other architectures] ROOT required!${NONE}"
-    echo -e "--install_nfs            [install NFS package] ROOT required!${NONE}"
+    echo -e "x--install-qemu           [install Qemu package for simulation of other architectures] ROOT required!${NONE}"
+    echo -e "x--install_nfs            [install NFS package] ROOT required!${NONE}"
     echo -e ""
-    echo -e "--list-parameters        [list all parameters]"
-    echo -e "--list-targets           [list all available targets]"
+    echo -e "x--list-parameters        [list all parameters ]"
+    echo -e "--list-targets           [list all available targets (only for existing Yocto install, use with --existing-install-folder)]"
     echo -e "--set-targets          = ${GREEN}${MACHINES[@]}${NONE}"
     echo -e "                         [set targets, for more than one, separate with space]"
     echo -e "--list-rootfs            [list rootfs variables]"
     echo -e "--set-rootfs           = ${GREEN}minimal minimal-dev sato sato-dev sato-sdk lsb lsb-dev lsb-sdk${NONE}"
     echo -e "                         [external rootfs]  ${GREEN}${EXT_ROOTFS}${NONE}"
-    echo -e "--set-package-system   = ${GREEN}ipk tar deb rpm${NONE}"
+    echo -e "x--set-package-system   = ${GREEN}ipk tar deb rpm${NONE}"
     echo -e "                         [set packaging system for YOCTO]"
 
     echo -e "--install-path           ${GREEN}PATH${NONE}"
@@ -694,7 +698,7 @@ print_usage() {
     echo -e "                         [load values from specified config file]${NONE}"
     echo -e "--save-to-config       = <path_to_config>${NONE}"
     echo -e "                         [save values to specified config file]${NONE}"
-    echo -e "--list-configs           [list available config files]"
+    echo -e "x--list-configs           [list available config files]"
     echo -e "--set-external-targets-path = <path_to_folder>"
     echo -e "--set-download-folder  = <path>"
     echo -e "--clean-download-folder  [to clean all downloads]"
@@ -711,7 +715,36 @@ print_banner() {
 }
 
 
+process_parameters() {
+    # process parameters
+    for i in "$@"
+    do
+    case "$i" in
+    --list-parameters) print_parameters   
+        ;;
+    --install-qemu) HOST_INSTALL_QEMU="YES"
+        ;;
+    --install-nfs) HOST_INSTALL_NFS="YES"
+        ;;
+    --list-configs) list_configs
+        ;;
+    --set-package-system=*) echo -e"setting package manager"
+        PACKAGE_MANAGERS=(${i#*=})
+        ;;
+    --save-to-config=*) 
+        CONFIG_TO_SAVE=${i#*=}
+        echo "saving parameters to ${CONFIG_TO_SAVE}"
+        ;;
+    *) echo "invalid option!!!" 
+        print_usage
+        ;;
+    esac
+    done
+}
 
+save_params_to_config() {
+
+}
 
 
 
@@ -731,17 +764,12 @@ if [[ $# -lt 1 ]];then
     collect_yocto_details
     collect_build_info
 else
-    # process parameters
-    for i in "$@"
-    do
-    case "$i" in
-        --list-parameters) print_parameters   
-        ;;
-    *) echo "invalid option!!!" 
-        print_usage
-        ;;
-    esac
-    done
+    process_parameters $@
+    
+    #if 'save to config' specified in process_parameters, save all paramaters
+    if [[ ! -z ${CONFIG_TO_SAVE}]];then
+        save_params_to_config ${CONFIG_TO_SAVE}
+    fi
 fi
 
 
