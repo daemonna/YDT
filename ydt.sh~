@@ -58,7 +58,8 @@ YOCTO_DISTRO="poky"
 YOCTO_REPO="http://downloads.yoctoproject.org/releases/yocto/yocto-${YOCTO_VERSION}"
 INSTALL_DIR="/opt/poky/1.5.1"  #default as adt installer
 
-LOG_FOLDER="~/.ydt/log"
+YDT_DIR="${HOME}/.ydt"
+LOG_FOLDER="${YDT_DIR}/log"
 LOG="${LOG_FOLDER}/ydt_ng.log"
 HISTORY="~/.ydt/history"
 CONFIG_FOLDER="${HOME}/.ydt/configs"
@@ -296,12 +297,15 @@ prepare_essentials() {
 # check for top .ydt folder   #
 ###############################
   echo -e "checking for .ydt folder..."
-  if [[ -d $HOME/.ydt ]];then
-    echo -e "you're running YDT installer for first time as ${GREEN}${USER}${NONE}"
+  if [[ -d ${YDT_DIR} ]];then
+    echo -e ".ydt folder found"
   else
+    echo -e "you're running YDT installer for first time as ${GREEN}${USER}${NONE}"
     echo -e "no .ydt folder... creating in $HOME/.ydt ."
-    mkdir $HOME/.ydt
+    mkdir ${YDT_DIR}
+    echo -e "created.."
   fi
+  
 
 ########################
 # check log file       #
@@ -313,6 +317,7 @@ prepare_essentials() {
   else
     echo "$LOG_FOLDER not found.. creating one"
     mkdir $LOG_FOLDER
+    echo -e "created.."
     touch ${LOG_FOLDER}/ydt_ng.log
     echo "#created on ${NOW}" >> ${LOG_FOLDER}/ydt_ng.log
     adt_log_write "                               " "new entry"
@@ -624,6 +629,7 @@ load_from_config() {
 # save paramaters to specified config file   #
 ##############################################
 save_params_to_config() {
+    echo -e "saving parameters to $1"
     echo $CLI_ARGS > $1
 }
 
@@ -727,6 +733,7 @@ print_banner() {
 
 process_parameters() {
     # process parameters
+    echo "processing paramaters"
     for i in "$@"
     do
     case "$i" in
@@ -750,7 +757,6 @@ process_parameters() {
         ;;
     --save-to-config=*) 
         CONFIG_TO_SAVE=${i#*=}
-        echo "saving parameters to ${CONFIG_TO_SAVE}"
         ;;
     --install-path=*) INSTALL_DIR=${i#*=}
         echo -e"setting installation path to ${INSTALL_DIR}"
@@ -781,20 +787,25 @@ process_parameters() {
 print_banner
 echo -e "welcome to YDT, for more options run with --help parameter"
 echo -e "############################################################"
+prepare_essentials
 
 #TODO if no params, run interactive
 
 if [[ $# -lt 1 ]];then
+    echo -e "running interactive mode..."
     collect_user_data
     collect_yocto_details
     collect_build_info
 else
+    echo -e "running non-interactive mode..."
     process_parameters $@
     
     #if 'save to config' specified in process_parameters, save all paramaters
-    if [[ ! -z ${CONFIG_TO_SAVE}]];then
+    if [[ ! -z ${CONFIG_TO_SAVE} ]];then
         save_params_to_config ${CONFIG_TO_SAVE}
     fi
+    
+    sleep 40000
     
     # Install required software 
     get_distro
