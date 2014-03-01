@@ -82,10 +82,12 @@ declare -a MACHINES=()
 declare -a IMAGES=()
 declare -a PACKAGE_MANAGERS=("rpm" "tar" "deb" "ipk")
 
-
-#OTHER 
+###########
+# OTHER   #
+###########
+NOW=$(date +"%s-%d-%m-%Y")
 CONFIG_TO_SAVE=""
-CLI_ARGS=""
+CLI_ARGS=""  #arguments to be saved into config
 
 
 #########################################################################################
@@ -218,11 +220,11 @@ install_adt_extras() {
 install_qemu() {
   if [[ "$HOST_INSTALL_QEMU" == "Y" ]];then
     case "${HOST_DISTRO}" in
-    redhat) yum install autoconf automake libtool glib2-devel
+    redhat) yum install qemu-kvm
       ;;
-    suse) zypper install autoconf automake libtool glib2-devel
+    suse) zypper install kvm
       ;;
-    debian) apt-get install autoconf automake libtool libglib2.0-dev
+    debian) apt-get install kvm
       ;;
     *) echo "DISTRO error"
       exit 1
@@ -239,11 +241,11 @@ install_qemu() {
 ########################
 install_nfs() {
   case "${HOST_DISTRO}" in
-  redhat) yum install autoconf automake libtool glib2-devel
+  redhat) yum install nfs-utils nfs-utils-lib
     ;;
-  suse) zypper install autoconf automake libtool glib2-devel
+  suse) zypper install nfs-client
     ;;
-  debian) apt-get install autoconf automake libtool libglib2.0-dev
+  debian) apt-get install nfs-common
     ;;
   *) echo "DISTRO error"
     exit 1
@@ -610,8 +612,20 @@ collect_build_info() {
 # INTERNAL FUNCTIONS                                                                               #
 ####################################################################################################
 
+##############################################
+# load paramaters from specified config file #
+##############################################
+load_from_config() {
+    CLI_ARGS=$(cat $1)
+    ydt ${CLI_ARGS}
+}
 
-
+##############################################
+# save paramaters to specified config file   #
+##############################################
+save_params_to_config() {
+    echo $CLI_ARGS > $1
+}
 
 
 
@@ -676,13 +690,13 @@ print_usage() {
     echo -e "running under BASH ${BASH_VERSION}"
     echo -e ""
     echo -e "\nUsage:\n"
-    echo -e "--help                   [print help]"
+    echo -e "x--help                   [print help]"
     echo -e ""
     echo -e "x--install-qemu           [install Qemu package for simulation of other architectures] ROOT required!${NONE}"
     echo -e "x--install_nfs            [install NFS package] ROOT required!${NONE}"
     echo -e ""
     echo -e "x--list-parameters        [list all parameters ]"
-    echo -e "--list-targets           [list all available targets (only for existing Yocto install, use with --existing-install-folder)]"
+    echo -e "--list-targets           [list all available targets (only for existing Yocto install, use with --install-path)]"
     echo -e "--set-targets          = ${GREEN}${MACHINES[@]}${NONE}"
     echo -e "                         [set targets, for more than one, separate with space]"
     echo -e "--list-rootfs            [list rootfs variables]"
@@ -691,16 +705,15 @@ print_usage() {
     echo -e "x--set-package-system   = ${GREEN}ipk tar deb rpm${NONE}"
     echo -e "                         [set packaging system for YOCTO]"
 
-    echo -e "x--install-path           ${GREEN}PATH${NONE}"
-    echo -e "                         [specify installation path]${NONE}"
-    echo -e "--show-history           [show installation history]${NONE}"
-    echo -e "--load-from-config     = <path_to_config>${NONE}"
+    echo -e "x--install-path          [specify installation path]${NONE}"
+    echo -e "x--show-history          [show installation history]${NONE}"
+    echo -e "x--load-from-config     = <path_to_config>${NONE}"
     echo -e "                         [load values from specified config file]${NONE}"
     echo -e "x--save-to-config       = <path_to_config>${NONE}"
     echo -e "                         [save values to specified config file]${NONE}"
     echo -e "x--list-configs           [list available config files]"
-    echo -e "--view-log               [view log file content]"
-    echo -e "--clear-log              [delete log file]"
+    echo -e "x--view-log               [view log file content]"
+    echo -e "x--clear-log              [delete log file]"
     echo -e "--install-full-yocto     []"
     echo -e "--install-toolchain-only [ all paramaters like MACHINE, IMAGE, etc must be specified!]"
 }
@@ -717,6 +730,10 @@ process_parameters() {
     for i in "$@"
     do
     case "$i" in
+    --help) print_usage
+        ;;
+    --show-history) show_history
+        ;;
     --list-parameters) print_parameters  
         ;;
     --install-qemu) HOST_INSTALL_QEMU="YES"
@@ -739,6 +756,13 @@ process_parameters() {
         echo -e"setting installation path to ${INSTALL_DIR}"
         CLI_ARGS="${CLI_ARGS} --install-path=\"${INSTALL_DIR}\"" 
         ;;
+    --load-from-config=*) load_from_config ${i#*=}
+        CLI_ARGS="${CLI_ARGS} --load-from-config=\"${i#*=}\""
+        ;;
+    --view-log) cat ${LOG}
+        ;;
+    --clear-log) echo "cleared by ${USER} at $NOW" > ${LOG}
+        ;;
     *) echo "invalid option!!!" 
         print_usage
         ;;
@@ -746,9 +770,6 @@ process_parameters() {
     done
 }
 
-save_params_to_config() {
-    echo $CLI_ARGS > $1
-}
 
 
 
@@ -773,6 +794,16 @@ else
     #if 'save to config' specified in process_parameters, save all paramaters
     if [[ ! -z ${CONFIG_TO_SAVE}]];then
         save_params_to_config ${CONFIG_TO_SAVE}
+    fi
+    
+    # Install required software 
+    get_distro
+    if [[ ${HOST_INSTALL_NFS} == "YES" ]];then
+        install_nfs
+    fi
+    
+    if [[ ${HOST_INSTALL_QEMU} == "YES" ]];then
+        install_qemu
     fi
 fi
 
