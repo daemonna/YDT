@@ -235,8 +235,6 @@ install_qemu() {
       exit 1
       ;;
     esac
-  else
-    echo -e "skipping installation of Qemu"
 }
 
 ########################

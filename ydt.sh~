@@ -143,6 +143,7 @@ get_distro() {
 # install required software for current distro #
 ################################################
 install_essentials() {
+
   case "${HOST_DISTRO}" in
   redhat) yum install gawk make wget tar bzip2 gzip python unzip perl patch \
      diffutils diffstat git cpp gcc gcc-c++ glibc-devel texinfo chrpath \
@@ -165,6 +166,7 @@ install_essentials() {
 # install additional graphics libs   #
 ######################################
 install_graphical_extras() {
+
   case "${HOST_DISTRO}" in
   redhat) yum install SDL-devel xterm
     ;;
@@ -183,6 +185,7 @@ install_graphical_extras() {
 # install documentation             #
 #####################################
 install_documentation() {
+
   case "${HOST_DISTRO}" in
   redhat) yum install make docbook-style-dsssl docbook-style-xsl \
      docbook-dtds docbook-utils fop libxslt dblatex xmlto
@@ -202,6 +205,7 @@ install_documentation() {
 # install ADT extras   #
 ########################
 install_adt_extras() {
+
   case "${HOST_DISTRO}" in
   redhat) yum install autoconf automake libtool glib2-devel
     ;;
@@ -219,7 +223,7 @@ install_adt_extras() {
 #  install qemu (default NO)  #
 ###############################
 install_qemu() {
-  if [[ "$HOST_INSTALL_QEMU" == "Y" ]];then
+
     case "${HOST_DISTRO}" in
     redhat) yum install qemu-kvm
       ;;
@@ -233,14 +237,13 @@ install_qemu() {
     esac
   else
     echo -e "skipping installation of Qemu"
-  fi
-
 }
 
 ########################
 # install NFS          #
 ########################
 install_nfs() {
+
   case "${HOST_DISTRO}" in
   redhat) yum install nfs-utils nfs-utils-lib
     ;;
