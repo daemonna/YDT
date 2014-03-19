@@ -46,12 +46,12 @@ ADT_PATH="adt-installer"  # path to ADT installer
 INSTALL_DIR="${HOME}/adt"
 
 YOCTOADT_REPO="http://downloads.yoctoproject.org/releases/yocto/yocto-1.5.1/adt-installer"
-YOCTOADT_TARGETS="arm"
+YOCTOADT_TARGETS="qemux86"
 YOCTOADT_QEMU="N"
 YOCTOADT_NFS_UTIL="N"
-YOCTOADT_ROOTFS_arch="skyboard-evb-sdk"
-YOCTOADT_TARGET_SYSROOT_IMAGE_arch="skyboard-evb-sdk"
-YOCTOADT_TARGET_MACHINE_arch="skyboard-evb"
+YOCTOADT_ROOTFS_arch="sato-sdk"
+YOCTOADT_TARGET_SYSROOT_IMAGE_arch="sato-sdk"
+YOCTOADT_TARGET_MACHINE_arch="qemux86"
 YOCTOADT_TARGET_SYSROOT_LOC_arch="$HOME/yocto_sdk/sysroots/arm"
 
 
@@ -187,7 +187,10 @@ if [[ $# -lt 1 ]]; then
     export ADT_INSTALL_PATH=${INSTALL_DIR}
     echo -e "${INSTALL_DIR} exported"
     export SUDO=""
-    ./${ADT_PATH}/adt_installer 
+    ./${ADT_PATH}/adt_installer <<< "
+    ${INSTALL_DIR}
+    S
+    "   
 else
     echo -e "some parameters found... OK"
     process_parameters $@
@@ -195,7 +198,10 @@ else
     export ADT_INSTALL_PATH=${INSTALL_DIR}
     echo -e "${INSTALL_DIR} exported"
     export SUDO=""
-    ./${ADT_PATH}/adt_installer
+    ./${ADT_PATH}/adt_installer <<< "
+    ${INSTALL_DIR}
+    S
+    "
 fi
 
 exit $?

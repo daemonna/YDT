@@ -126,9 +126,9 @@ write_adt_conf() {
     echo -e "YOCTOADT_TARGETS=\"arm\"" >> ${ADT_PATH}/adt_installer.conf
     echo -e "YOCTOADT_QEMU=\"N\"" >> ${ADT_PATH}/adt_installer.conf
     echo -e "YOCTOADT_NFS_UTIL=\"N\"" >> ${ADT_PATH}/adt_installer.conf
-    echo -e "YOCTOADT_ROOTFS_${YOCTOADT_TARGETS}=\"skyboard-evb-sdk\"" >> ${ADT_PATH}/adt_installer.conf
-    echo -e "YOCTOADT_TARGET_SYSROOT_IMAGE_${YOCTOADT_TARGETS}=\"skyboard-evb-sdk\"" >> ${ADT_PATH}/adt_installer.conf
-    echo -e "YOCTOADT_TARGET_MACHINE_${YOCTOADT_TARGETS}=\"skyboard-evb\"" >> ${ADT_PATH}/adt_installer.conf
+    echo -e "YOCTOADT_ROOTFS_${YOCTOADT_TARGETS}=\"${YOCTOADT_ROOTFS_arch}\"" >> ${ADT_PATH}/adt_installer.conf
+    echo -e "YOCTOADT_TARGET_SYSROOT_IMAGE_${YOCTOADT_TARGETS}=\"${YOCTOADT_TARGET_SYSROOT_IMAGE_arch}\"" >> ${ADT_PATH}/adt_installer.conf
+    echo -e "YOCTOADT_TARGET_MACHINE_${YOCTOADT_TARGETS}=\"${YOCTOADT_TARGET_MACHINE_arch}\"" >> ${ADT_PATH}/adt_installer.conf
     echo -e "YOCTOADT_TARGET_SYSROOT_LOC_${YOCTOADT_TARGETS}=\"$HOME/yocto-sdk/sysroots/${YOCTOADT_TARGETS}\"\n" >> ${ADT_PATH}/adt_installer.conf
     
     echo -e "\nnew adt_installer.conf generated\n"
