@@ -58,9 +58,10 @@ YOCTO_DISTRO="poky"
 YOCTO_REPO="http://downloads.yoctoproject.org/releases/yocto/yocto-${YOCTO_VERSION}"
 INSTALL_DIR="/opt/poky/1.5.1"  #default as adt installer
 
-LOG_FOLDER="~/.ydt/log"
+YDT_DIR="${HOME}/.ydt"
+LOG_FOLDER="${YDT_DIR}/log"
 LOG="${LOG_FOLDER}/ydt_ng.log"
-HISTORY="~/.ydt/history"
+HISTORY="${YDT_DIR}/history"
 CONFIG_FOLDER="${HOME}/.ydt/configs"
 
 ######################
@@ -82,6 +83,12 @@ declare -a MACHINES=()
 declare -a IMAGES=()
 declare -a PACKAGE_MANAGERS=("rpm" "tar" "deb" "ipk")
 
+###########
+# OTHER   #
+###########
+NOW=$(date +"%s-%d-%m-%Y")
+CONFIG_TO_SAVE=""
+CLI_ARGS=""  #arguments to be saved into config
 
 
 #########################################################################################
@@ -136,6 +143,7 @@ get_distro() {
 # install required software for current distro #
 ################################################
 install_essentials() {
+
   case "${HOST_DISTRO}" in
   redhat) yum install gawk make wget tar bzip2 gzip python unzip perl patch \
      diffutils diffstat git cpp gcc gcc-c++ glibc-devel texinfo chrpath \
@@ -158,6 +166,7 @@ install_essentials() {
 # install additional graphics libs   #
 ######################################
 install_graphical_extras() {
+
   case "${HOST_DISTRO}" in
   redhat) yum install SDL-devel xterm
     ;;
@@ -176,6 +185,7 @@ install_graphical_extras() {
 # install documentation             #
 #####################################
 install_documentation() {
+
   case "${HOST_DISTRO}" in
   redhat) yum install make docbook-style-dsssl docbook-style-xsl \
      docbook-dtds docbook-utils fop libxslt dblatex xmlto
@@ -195,6 +205,7 @@ install_documentation() {
 # install ADT extras   #
 ########################
 install_adt_extras() {
+
   case "${HOST_DISTRO}" in
   redhat) yum install autoconf automake libtool glib2-devel
     ;;
@@ -212,34 +223,31 @@ install_adt_extras() {
 #  install qemu (default NO)  #
 ###############################
 install_qemu() {
-  if [[ "$HOST_INSTALL_QEMU" == "Y" ]];then
+
     case "${HOST_DISTRO}" in
-    redhat) yum install autoconf automake libtool glib2-devel
+    redhat) yum install qemu-kvm
       ;;
-    suse) zypper install autoconf automake libtool glib2-devel
+    suse) zypper install kvm
       ;;
-    debian) apt-get install autoconf automake libtool libglib2.0-dev
+    debian) apt-get install kvm
       ;;
     *) echo "DISTRO error"
       exit 1
       ;;
     esac
-  else
-    echo -e "skipping installation of Qemu"
-  fi
-
 }
 
 ########################
 # install NFS          #
 ########################
 install_nfs() {
+
   case "${HOST_DISTRO}" in
-  redhat) yum install autoconf automake libtool glib2-devel
+  redhat) yum install nfs-utils nfs-utils-lib
     ;;
-  suse) zypper install autoconf automake libtool glib2-devel
+  suse) zypper install nfs-client
     ;;
-  debian) apt-get install autoconf automake libtool libglib2.0-dev
+  debian) apt-get install nfs-common
     ;;
   *) echo "DISTRO error"
     exit 1
@@ -290,23 +298,27 @@ prepare_essentials() {
 # check for top .ydt folder   #
 ###############################
   echo -e "checking for .ydt folder..."
-  if [[ -d $HOME/.ydt ]];then
-    echo -e "you're running YDT installer for first time as ${GREEN}${USER}${NONE}"
+  if [[ -d ${YDT_DIR} ]];then
+    echo -e ".ydt folder found"
   else
+    echo -e "you're running YDT installer for first time as ${GREEN}${USER}${NONE}"
     echo -e "no .ydt folder... creating in $HOME/.ydt ."
-    mkdir $HOME/.ydt
+    mkdir ${YDT_DIR}
+    echo -e "created.."
   fi
+  
 
 ########################
 # check log file       #
 ########################
-  if [[ -d $LOG_FOLDER ]];then
-    echo "$LOG_FOLDER exists.. OK"
+  if [[ -d ${LOG_FOLDER} ]];then
+    echo "${LOG_FOLDER} exists.. OK"
     adt_log_write "                               " ""
     adt_log_write "installer run by $USER" "INFO"
   else
-    echo "$LOG_FOLDER not found.. creating one"
-    mkdir $LOG_FOLDER
+    echo "${LOG_FOLDER} not found.. creating one"
+    mkdir ${LOG_FOLDER}
+    echo -e "created.."
     touch ${LOG_FOLDER}/ydt_ng.log
     echo "#created on ${NOW}" >> ${LOG_FOLDER}/ydt_ng.log
     adt_log_write "                               " "new entry"
@@ -339,7 +351,7 @@ prepare_essentials() {
     echo "history found at ${HISTORY}... OK"
   else 
     echo "history not found... creating new one"
-    touch ${HISTORY}
+    echo "" > ${HISTORY}
     adt_log_write "history file missing.. recreated in ${HISTORY}" "WARNING"
     adt_history_write "history file missing.. recreated in ${HISTORY}"
   fi
@@ -606,8 +618,21 @@ collect_build_info() {
 # INTERNAL FUNCTIONS                                                                               #
 ####################################################################################################
 
+##############################################
+# load paramaters from specified config file #
+##############################################
+load_from_config() {
+    CLI_ARGS=$(cat $1)
+    ydt ${CLI_ARGS}
+}
 
-
+##############################################
+# save paramaters to specified config file   #
+##############################################
+save_params_to_config() {
+    echo -e "saving parameters to $1"
+    echo $CLI_ARGS > ${YDT_DIR}/configs/$1.config
+}
 
 
 
@@ -655,6 +680,7 @@ print_parameters() {
     echo -e "  package managers: ${GREEN}${PACKAGE_MANAGERS[@]}${NONE}"
     echo -e "------------------------------------------------------"
   
+<<<<<<< HEAD
     echo -e "- ${YELLOW}INSTALL PARAMETERS ${NONE}----------------------------------"
     echo -e "  install folder:   ${GREEN}${INSTALL_FOLDER}${NONE}"
     echo -e "  download folder:  ${GREEN}${DOWNLOAD_FOLDER}${NONE}"
@@ -664,6 +690,17 @@ print_parameters() {
     echo -e "  install NFS:      ${GREEN}${HOST_INSTALL_NFS}${NONE}"
     echo -e "  install Qemu:     ${GREEN}${HOST_INSTALL_QEMU}${NONE}"
     echo -e "------------------------------------------------------"
+=======
+  echo -e "- ${YELLOW}INSTALL PARAMETERS ${NONE}----------------------------------"
+  echo -e "  install folder:   ${GREEN}${INSTALL_DIR}${NONE}"
+  echo -e "  download folder:  ${GREEN}${DOWNLOAD_FOLDER}${NONE}"
+  echo -e "  ADT repo:         ${GREEN}${YOCTO_ADT_REPO}${NONE}"
+  echo -e "  log file:         ${GREEN}${LOG}${NONE}"
+  echo -e "  history file:     ${GREEN}${HISTORY}${NONE}"
+  echo -e "  install NFS:      ${GREEN}${HOST_INSTALL_NFS}${NONE}"
+  echo -e "  install Qemu:     ${GREEN}${HOST_INSTALL_QEMU}${NONE}"
+  echo -e "------------------------------------------------------"
+>>>>>>> 0ed572e4ef2f879b348372c83333253fd157681e
 }
 
 
@@ -672,36 +709,32 @@ print_usage() {
     echo -e "running under BASH ${BASH_VERSION}"
     echo -e ""
     echo -e "\nUsage:\n"
-    echo -e "--help                   [print help]"
+    echo -e "x--help                   [print help]"
     echo -e ""
-    echo -e "--install-qemu           [install Qemu package for simulation of other architectures] ROOT required!${NONE}"
-    echo -e "--install_nfs            [install NFS package] ROOT required!${NONE}"
+    echo -e "x--install-qemu           [install Qemu package for simulation of other architectures] ROOT required!${NONE}"
+    echo -e "x--install_nfs            [install NFS package] ROOT required!${NONE}"
     echo -e ""
-    echo -e "--list-parameters        [list all parameters]"
-    echo -e "--list-targets           [list all available targets]"
+    echo -e "x--list-parameters        [list all parameters ]"
+    echo -e "--list-targets           [list all available targets (only for existing Yocto install, use with --install-path)]"
     echo -e "--set-targets          = ${GREEN}${MACHINES[@]}${NONE}"
     echo -e "                         [set targets, for more than one, separate with space]"
     echo -e "--list-rootfs            [list rootfs variables]"
     echo -e "--set-rootfs           = ${GREEN}minimal minimal-dev sato sato-dev sato-sdk lsb lsb-dev lsb-sdk${NONE}"
     echo -e "                         [external rootfs]  ${GREEN}${EXT_ROOTFS}${NONE}"
-    echo -e "--set-package-system   = ${GREEN}ipk tar deb rpm${NONE}"
+    echo -e "x--set-package-system   = ${GREEN}ipk tar deb rpm${NONE}"
     echo -e "                         [set packaging system for YOCTO]"
 
-    echo -e "--install-path           ${GREEN}PATH${NONE}"
-    echo -e "                         [specify installation path]${NONE}"
-    echo -e "--show-history           [show installation history]${NONE}"
-    echo -e "--load-from-config     = <path_to_config>${NONE}"
+    echo -e "x--install-path          [specify installation path]${NONE}"
+    echo -e "x--show-history          [show installation history]${NONE}"
+    echo -e "x--load-from-config     = <path_to_config>${NONE}"
     echo -e "                         [load values from specified config file]${NONE}"
-    echo -e "--save-to-config       = <path_to_config>${NONE}"
+    echo -e "x--save-to-config       = <path_to_config>${NONE}"
     echo -e "                         [save values to specified config file]${NONE}"
-    echo -e "--list-configs           [list available config files]"
-    echo -e "--set-external-targets-path = <path_to_folder>"
-    echo -e "--set-download-folder  = <path>"
-    echo -e "--clean-download-folder  [to clean all downloads]"
-    echo -e "--view-log               [view log file content]"
-    echo -e "--clear-log              [delete log file]"
+    echo -e "x--list-configs           [list available config files]"
+    echo -e "x--view-log               [view log file content]"
+    echo -e "x--clear-log              [delete log file]"
     echo -e "--install-full-yocto     []"
-    echo -e "--install-toolchain-only []"
+    echo -e "--install-toolchain-only [ all paramaters like MACHINE, IMAGE, etc must be specified!]"
 }
 
 
@@ -711,6 +744,50 @@ print_banner() {
 }
 
 
+process_parameters() {
+    # process parameters
+    echo "processing paramaters"
+    for i in "$@"
+    do
+    case "$i" in
+    --help) print_usage
+        ;;
+    --show-history) show_history
+        ;;
+    --list-parameters) print_parameters  
+        ;;
+    --install-qemu) HOST_INSTALL_QEMU="YES"
+        CLI_ARGS="${CLI_ARGS} --install-qemu" 
+        ;;
+    --install-nfs) HOST_INSTALL_NFS="YES"
+        CLI_ARGS="${CLI_ARGS} --install-nfs" 
+        ;;
+    --list-configs) list_configs
+        ;;
+    --set-package-system=*) echo -e"setting package manager"
+        PACKAGE_MANAGERS=(${i#*=})
+        CLI_ARGS="${CLI_ARGS} --set-package-system=\"${PACKAGE_MANAGERS[@]}\""
+        ;;
+    --save-to-config=*) 
+        CONFIG_TO_SAVE=${i#*=}
+        ;;
+    --install-path=*) INSTALL_DIR=${i#*=}
+        echo -e"setting installation path to ${INSTALL_DIR}"
+        CLI_ARGS="${CLI_ARGS} --install-path=\"${INSTALL_DIR}\"" 
+        ;;
+    --load-from-config=*) load_from_config ${i#*=}
+        CLI_ARGS="${CLI_ARGS} --load-from-config=\"${i#*=}\""
+        ;;
+    --view-log) cat ${LOG}
+        ;;
+    --clear-log) echo "cleared by ${USER} at $NOW" > ${LOG}
+        ;;
+    *) echo "invalid option!!!" 
+        print_usage
+        ;;
+    esac
+    done
+}
 
 
 
@@ -723,25 +800,35 @@ print_banner() {
 print_banner
 echo -e "welcome to YDT, for more options run with --help parameter"
 echo -e "############################################################"
+prepare_essentials
 
 #TODO if no params, run interactive
 
 if [[ $# -lt 1 ]];then
+    echo -e "running interactive mode..."
     collect_user_data
     collect_yocto_details
     collect_build_info
 else
-    # process parameters
-    for i in "$@"
-    do
-    case "$i" in
-        --list-parameters) print_parameters   
-        ;;
-    *) echo "invalid option!!!" 
-        print_usage
-        ;;
-    esac
-    done
+    echo -e "running non-interactive mode..."
+    process_parameters $@
+    
+    #if 'save to config' specified in process_parameters, save all paramaters
+    if [[ ! -z ${CONFIG_TO_SAVE} ]];then
+        save_params_to_config ${CONFIG_TO_SAVE}
+    fi
+    
+    sleep 40000
+    
+    # Install required software 
+    get_distro
+    if [[ ${HOST_INSTALL_NFS} == "YES" ]];then
+        install_nfs
+    fi
+    
+    if [[ ${HOST_INSTALL_QEMU} == "YES" ]];then
+        install_qemu
+    fi
 fi
 
 
