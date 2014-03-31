@@ -372,8 +372,10 @@ get_stable_branch() {
 
     cd ${INSTALL_DIR}/${YOCTO_DISTRO}
     echo -e "downloading STABLE branch"
+    cd ${INSTALL_DIR}
     wget ${YOCTO_REPO}/poky-dora-10.0.1.tar.bz2
     tar xvjf poky-dora-10.0.1.tar.bz2 
+    cp -R poky-dora-10.0.1 poky
 }
 
 
@@ -680,7 +682,7 @@ print_parameters() {
     echo -e "  package managers: ${GREEN}${PACKAGE_MANAGERS[@]}${NONE}"
     echo -e "------------------------------------------------------"
   
-<<<<<<< HEAD
+
     echo -e "- ${YELLOW}INSTALL PARAMETERS ${NONE}----------------------------------"
     echo -e "  install folder:   ${GREEN}${INSTALL_FOLDER}${NONE}"
     echo -e "  download folder:  ${GREEN}${DOWNLOAD_FOLDER}${NONE}"
@@ -690,17 +692,7 @@ print_parameters() {
     echo -e "  install NFS:      ${GREEN}${HOST_INSTALL_NFS}${NONE}"
     echo -e "  install Qemu:     ${GREEN}${HOST_INSTALL_QEMU}${NONE}"
     echo -e "------------------------------------------------------"
-=======
-  echo -e "- ${YELLOW}INSTALL PARAMETERS ${NONE}----------------------------------"
-  echo -e "  install folder:   ${GREEN}${INSTALL_DIR}${NONE}"
-  echo -e "  download folder:  ${GREEN}${DOWNLOAD_FOLDER}${NONE}"
-  echo -e "  ADT repo:         ${GREEN}${YOCTO_ADT_REPO}${NONE}"
-  echo -e "  log file:         ${GREEN}${LOG}${NONE}"
-  echo -e "  history file:     ${GREEN}${HISTORY}${NONE}"
-  echo -e "  install NFS:      ${GREEN}${HOST_INSTALL_NFS}${NONE}"
-  echo -e "  install Qemu:     ${GREEN}${HOST_INSTALL_QEMU}${NONE}"
-  echo -e "------------------------------------------------------"
->>>>>>> 0ed572e4ef2f879b348372c83333253fd157681e
+
 }
 
 
